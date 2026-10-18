@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --sgx-bg-deep: #0A1128;
+    --sgx-turquoise: #51E6C4;
+    --sgx-purple: #5E53CC;
+    --sgx-purple-glow: rgba(94, 83, 204, 0.4);
+    --sgx-turquoise-glow: rgba(81, 230, 196, 0.35);
+    --sgx-surface: #0e1736;
+    --sgx-surface-elevated: #141f45;
+    --sgx-border: rgba(81, 230, 196, 0.25);
+    --sgx-blue: #1c2b5e;
+    --sgx-blue-light: #334d99;
+    --sgx-gold: #51E6C4;
+    --sgx-cyan: #51E6C4;
+    --sgx-dark: #0A1128;
+  }
+
+  html, body {
+    background-color: #0A1128;
+    color: #e2e8f0;
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  code, pre, .font-mono-telemetry {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Cybernetic chamfer geometry */
+.clip-chamfer {
+  clip-path: polygon(
+    10px 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    10px 100%,
+    0 calc(100% - 10px),
+    0 10px
+  );
+}
+
+.clip-chamfer-top {
+  clip-path: polygon(
+    12px 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    0 100%,
+    0 12px
+  );
+}
+
+.clip-chamfer-corner {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    0 100%
+  );
+}
+
+/* Holodeck Grid Background */
+.holodeck-grid {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(50, 82, 123, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(50, 82, 123, 0.12) 1px, transparent 1px);
+}
+
+.holodeck-grid-dense {
+  background-size: 18px 18px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 255, 0.08) 1px, transparent 1px);
+}
+
+/* Hologram Scanning Line */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+.animate-scanline {
+  animation: scanline 7s linear infinite;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080d14;
+}
+::-webkit-scrollbar-thumb {
+  background: #32527B;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4A7AB7;
+}
