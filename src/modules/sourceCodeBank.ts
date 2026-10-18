@@ -2,24 +2,24 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * SGX OMNI-CANVAS - Clean Modular Source Code Bank
- * Single-Pillar Edition: Spark × Story (The Celestial Viewport)
+ * Single-Pillar Edition: Showcase × System (The Celestial Viewport)
  */
 
 export const SGX_CONFIG_JS = `/**
  * ========================================================
  * SGX OMNI-CANVAS: sgx-config.js (Panel de Control Central)
  * ========================================================
- * Afinidad Única Activa: 'SPARK_STORY' (Spark × Story)
+ * Afinidad Única Activa: 'SHOWCASE_SYSTEM' (Showcase × System)
  * Entorno de ciencia ficción acogedora (#0A1128, #51E6C4, #5E53CC)
  * Personaje en 3ra persona observando Viewport rectangular y planetas vivos a 60 FPS.
  */
 
-export const ACTIVE_PILLAR = 'SPARK_STORY';
+export const ACTIVE_PILLAR = 'SHOWCASE_SYSTEM';
 
 export const CREATOR_PROFILE = {
   authorName: 'Spatialgineers Creator',
   specialtyRole: 'Virtual Architect & Creative Technologist',
-  projectTitle: 'Interactive Spatial Portfolio (Spark × Story)',
+  projectTitle: 'Interactive Spatial Portfolio (Showcase × System)',
   contactEmail: 'creator@spatialgineers.com',
   socialLinks: {
     github: 'https://github.com',
@@ -29,7 +29,7 @@ export const CREATOR_PROFILE = {
 };
 
 export const SGX_SETTINGS = {
-  appName: 'SGX Omni-Canvas: Spark × Story Portfolio',
+  appName: 'SGX Omni-Canvas: Showcase × System Portfolio',
   version: '2026.5',
   debugMode: false,
   showTelemetryHUD: true,
@@ -44,9 +44,9 @@ export const SGX_SETTINGS = {
 };
 `;
 
-export const SPARK_STORY_MODULE_JS = `/**
+export const SHOWCASE_SYSTEM_MODULE_JS = `/**
  * ========================================================
- * MÓDULO SGX.Spark × SGX.Story: Portafolio del Observador Cósmico
+ * MÓDULO SGX.Showcase × SGX.System: Portafolio del Observador Cósmico
  * ========================================================
  * Arquitectura Three.js PBR a 60 FPS · Ciencia Ficción Acogedora (#0A1128, #51E6C4, #5E53CC)
  * Personaje geométrico en 3ra persona observando Viewport rectangular y sistema de planetas.
@@ -56,7 +56,7 @@ export const SPARK_STORY_MODULE_JS = `/**
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-export class SparkStoryPortfolioEngine {
+export class ShowcaseSystemPortfolioEngine {
   constructor(container) {
     this.container = container;
     this.clock = new THREE.Clock();

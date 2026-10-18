@@ -15,12 +15,12 @@ import { SGXGrimoireModal } from './components/SGXGrimoireModal';
 import { SGXExportModal } from './components/SGXExportModal';
 import { SGXPillarScopeModal } from './components/SGXPillarScopeModal';
 
-import { SparkStoryPortfolioModule } from './components/modules/SparkStoryPortfolioModule';
+import { ShowcaseSystemPortfolioModule } from './components/modules/ShowcaseSystemPortfolioModule';
 import { Sparkles, BookOpen, Download, Compass } from 'lucide-react';
 
 export default function App() {
   const [showLoader, setShowLoader] = useState<boolean>(false);
-  const [activePillar, setActivePillar] = useState<PillarId>('SPARK_STORY');
+  const [activePillar, setActivePillar] = useState<PillarId>('SHOWCASE_SYSTEM');
   const [isStageMode, setIsStageMode] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
@@ -147,9 +147,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Primary Active Module Viewport: Spark × Story */}
+      {/* Primary Active Module Viewport: Showcase × System */}
       <main className="relative flex-1 w-full h-full overflow-hidden bg-[#0A1128]">
-        <SparkStoryPortfolioModule
+        <ShowcaseSystemPortfolioModule
           onOpenRemix={() => setIsRemixLabOpen(true)}
           isMuted={isMuted}
         />

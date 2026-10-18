@@ -33,7 +33,7 @@ import {
   X
 } from 'lucide-react';
 
-interface SparkStoryPortfolioModuleProps {
+interface ShowcaseSystemPortfolioModuleProps {
   onOpenRemix: () => void;
   isMuted: boolean;
 }
@@ -145,7 +145,7 @@ const CELESTIAL_PLANETS: CelestialPlanet[] = [
   }
 ];
 
-export const SparkStoryPortfolioModule: React.FC<SparkStoryPortfolioModuleProps> = ({
+export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModuleProps> = ({
   onOpenRemix,
   isMuted
 }) => {
@@ -596,7 +596,7 @@ export const SparkStoryPortfolioModule: React.FC<SparkStoryPortfolioModuleProps>
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sgx-spark-story-portfolio-single-file.html';
+    a.download = 'sgx-showcase-system-portfolio-single-file.html';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

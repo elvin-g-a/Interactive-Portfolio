@@ -73,7 +73,7 @@ export const SGXHeader: React.FC<SGXHeaderProps> = ({
           <button
             onClick={() => {
               soundEngine.playPillarSwitchSound();
-              onSelectPillar('SPARK_STORY');
+              onSelectPillar('SHOWCASE_SYSTEM');
             }}
             className="px-3.5 py-1.5 text-xs rounded-md transition-all whitespace-nowrap flex items-center gap-2 bg-[#141f45] text-[#51E6C4] font-bold shadow-sm border border-[#51E6C4]/60"
             title="Showcase x System: Portafolio Interactivo del Observador Cósmico"

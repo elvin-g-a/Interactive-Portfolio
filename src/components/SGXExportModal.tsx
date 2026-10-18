@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { Download, Copy, Check, X, FileCode, CheckCircle2, Terminal } from 'lucide-react';
 import { PillarId, PILLARS } from '../config/sgx-config';
 import {
-  SPARK_STORY_MODULE_JS,
+  SHOWCASE_SYSTEM_MODULE_JS,
   SGX_CONFIG_JS
 } from '../modules/sourceCodeBank';
 import { soundEngine } from '../services/sound-effects';
@@ -26,7 +26,7 @@ export const SGXExportModal: React.FC<SGXExportModalProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   const getModuleCode = (_pillar: PillarId): string => {
-    return SPARK_STORY_MODULE_JS;
+    return SHOWCASE_SYSTEM_MODULE_JS;
   };
 
   // Generate self-contained Single-File HTML bundle with Import Maps (Grimorio Cap 1.2)

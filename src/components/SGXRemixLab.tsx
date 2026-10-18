@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { PillarId, PILLARS } from '../config/sgx-config';
 import {
-  SPARK_STORY_MODULE_JS,
+  SHOWCASE_SYSTEM_MODULE_JS,
   SGX_CONFIG_JS
 } from '../modules/sourceCodeBank';
 import { Sparkles, Copy, Check, Download, X, Terminal, Code2, Cpu, ArrowRight, Layers, FileCode } from 'lucide-react';
@@ -38,7 +38,7 @@ export const SGXRemixLab: React.FC<SGXRemixLabProps> = ({
   const pillarMeta = PILLARS[selectedPillar];
 
   const getModuleCode = (_pillar: PillarId): string => {
-    return SPARK_STORY_MODULE_JS;
+    return SHOWCASE_SYSTEM_MODULE_JS;
   };
 
   const getFullSurgicalPrompt = (): string => {
