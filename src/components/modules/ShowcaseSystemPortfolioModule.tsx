@@ -9,28 +9,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { soundEngine } from '../../services/sound-effects';
 import {
-  Sparkles,
-  BookOpen,
-  Volume2,
-  VolumeX,
   Send,
-  Zap,
-  Compass,
-  Download,
-  Code2,
-  Eye,
-  Maximize2,
-  ChevronRight,
-  ExternalLink,
-  Github,
-  Mail,
   CheckCircle2,
-  Sliders,
-  Layers,
-  Radio,
-  X
+  X,
+  RotateCw
 } from 'lucide-react';
 
 interface ShowcaseSystemPortfolioModuleProps {
@@ -38,7 +23,7 @@ interface ShowcaseSystemPortfolioModuleProps {
   isMuted: boolean;
 }
 
-// Portfolio Chapters linked to Celestial Bodies
+// Portfolio Chapters linked to Celestial Bodies (Static Positions per "Posiciones de Planetas.png")
 export interface CelestialPlanet {
   id: string;
   name: string;
@@ -47,16 +32,16 @@ export interface CelestialPlanet {
   color: string;
   secondaryColor: string;
   radius: number;
-  orbitRadiusX: number;
-  orbitRadiusY: number;
-  orbitSpeed: number;
-  orbitAngle: number;
-  inclination: number;
+  screenX: number;
+  screenY: number;
   hasRings?: boolean;
   ringsRadius?: number;
   isWireframe?: boolean;
   description: string;
   chapterNumber: number;
+  modelFile: string;
+  fallbackModelUrl: string;
+  modelName: string;
 }
 
 const CELESTIAL_PLANETS: CelestialPlanet[] = [
@@ -65,601 +50,275 @@ const CELESTIAL_PLANETS: CelestialPlanet[] = [
     name: 'Planeta Spark',
     subtitle: 'El Crisol · Motor Interactivo & Físicas',
     domain: 'SPARK',
-    color: '#51E6C4',
-    secondaryColor: '#00BFA5',
-    radius: 0.65,
-    orbitRadiusX: 2.8,
-    orbitRadiusY: 1.4,
-    orbitSpeed: 0.45,
-    orbitAngle: 0.2,
-    inclination: 0.15,
+    color: '#E06D53',
+    secondaryColor: '#51E6C4',
+    radius: 0.68,
+    screenX: 0.7294,
+    screenY: 0.6810,
     description: 'Mecánicas de fricción cero, bucles de simulación a 60 FPS y gamificación interactiva.',
-    chapterNumber: 1
+    chapterNumber: 1,
+    modelFile: '/models/mars.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_58d95a433d44426aa5a65ad4c19b447c.glb',
+    modelName: 'mars.glb'
   },
   {
     id: 'planet-story',
     name: 'Planeta Story',
     subtitle: 'El Archivo · Crónicas & Manifiesto',
     domain: 'STORY',
-    color: '#5E53CC',
+    color: '#D8C39D',
     secondaryColor: '#8C82FF',
-    radius: 0.85,
-    orbitRadiusX: 4.2,
-    orbitRadiusY: 1.9,
-    orbitSpeed: 0.25,
-    orbitAngle: 2.1,
-    inclination: -0.22,
+    radius: 0.72,
+    screenX: 0.4948,
+    screenY: 0.4741,
     hasRings: true,
-    ringsRadius: 1.6,
+    ringsRadius: 1.35,
     description: 'Narrativa cinemática, la travesía del arquitecto creador y el diseño con alma humana.',
-    chapterNumber: 2
+    chapterNumber: 2,
+    modelFile: '/models/saturn.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_e1bdc16d3c47453193f9fa07c26d7c96.glb',
+    modelName: 'saturn.glb'
   },
   {
     id: 'planet-nexus',
     name: 'Planeta Nexus',
     subtitle: 'La Bóveda · Proyectos & Obras Insignia',
     domain: 'NEXUS',
-    color: '#51E6C4',
-    secondaryColor: '#5E53CC',
-    radius: 0.75,
-    orbitRadiusX: 5.6,
-    orbitRadiusY: 2.4,
-    orbitSpeed: 0.18,
-    orbitAngle: 3.8,
-    inclination: 0.1,
-    isWireframe: true,
+    color: '#4A90E2',
+    secondaryColor: '#51E6C4',
+    radius: 0.66,
+    screenX: 0.7258,
+    screenY: 0.3199,
+    isWireframe: false,
     description: 'Colección de aplicaciones espaciales interactivas, herramientas creativas y gemelos digitales.',
-    chapterNumber: 3
+    chapterNumber: 3,
+    modelFile: '/models/earth.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_1bd1dd160e044c68b253c3a864854dcd.glb',
+    modelName: 'earth.glb'
   },
   {
     id: 'planet-matrix',
     name: 'Planeta Matrix',
     subtitle: 'El Bastión · Stack Tecnológico & Arcana',
     domain: 'MATRIX',
-    color: '#6366F1',
+    color: '#41729F',
     secondaryColor: '#51E6C4',
-    radius: 0.58,
-    orbitRadiusX: 7.0,
-    orbitRadiusY: 3.0,
-    orbitSpeed: 0.12,
-    orbitAngle: 5.0,
-    inclination: -0.15,
+    radius: 0.65,
+    screenX: 0.2484,
+    screenY: 0.7093,
     description: 'Maestría en Three.js, shaders GLSL, arquitecturas full-stack y optimización GPU.',
-    chapterNumber: 4
+    chapterNumber: 4,
+    modelFile: '/models/neptune.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_a4fdaaedd8124afa93ccd77bdcc6f0c8.glb',
+    modelName: 'neptune.glb'
   },
   {
     id: 'planet-beacon',
     name: 'Planeta Beacon',
     subtitle: 'El Faro · Enlace & Transmisión',
     domain: 'BEACON',
-    color: '#51E6C4',
+    color: '#A0A0A0',
     secondaryColor: '#FFFFFF',
-    radius: 0.5,
-    orbitRadiusX: 8.2,
-    orbitRadiusY: 3.5,
-    orbitSpeed: 0.08,
-    orbitAngle: 1.1,
-    inclination: 0.28,
+    radius: 0.63,
+    screenX: 0.2529,
+    screenY: 0.3157,
     description: 'Canal directo de contacto, colaboración profesional y disponibilidad de misiones.',
-    chapterNumber: 5
+    chapterNumber: 5,
+    modelFile: '/models/moon.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_6ac838581067467e921a0510f23a427f.glb',
+    modelName: 'moon.glb'
   }
 ];
 
-export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModuleProps> = ({
-  onOpenRemix,
-  isMuted
-}) => {
+export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModuleProps> = () => {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   // UI States
   const [selectedPlanet, setSelectedPlanet] = useState<CelestialPlanet | null>(null);
-  const [hoveredPlanet, setHoveredPlanet] = useState<CelestialPlanet | null>(null);
-  const [activeChapterTab, setActiveChapterTab] = useState<number>(1);
-  const [orbitSpeedFactor, setOrbitSpeedFactor] = useState<number>(1.0);
-  const [isDroneActive, setIsDroneActive] = useState<boolean>(false);
-  const [isHUDCollapsed, setIsHUDCollapsed] = useState<boolean>(false);
-  const [isWireframeScanner, setIsWireframeScanner] = useState<boolean>(false);
-  const [probesCount, setProbesCount] = useState<number>(0);
-  const [telemetryLog, setTelemetryLog] = useState<string>('OBSERVATORIO ESTABLE · SECTOR-7 EN LÍNEA');
+  const [isHovered, setIsHovered] = useState<boolean>(false);
   const [transmissionSent, setTransmissionSent] = useState<boolean>(false);
   const [messageText, setMessageText] = useState<string>('');
   const [senderEmail, setSenderEmail] = useState<string>('');
-  const [isSingleFileModalOpen, setIsSingleFileModalOpen] = useState<boolean>(false);
 
   // References to keep mutable 3D state out of re-render closures
   const stateRef = useRef({
-    orbitSpeedFactor: 1.0,
-    isWireframeScanner: false,
     selectedPlanetId: null as string | null,
     hoveredPlanetId: null as string | null,
     pointer: new THREE.Vector2(-9999, -9999),
     raycaster: new THREE.Raycaster(),
     planetsMeshes: new Map<string, THREE.Group>(),
     planetTargetPositions: new Map<string, THREE.Vector3>(),
-    characterHead: null as THREE.Mesh | null,
-    characterSpine: null as THREE.Mesh | null,
-    probes: [] as {
-      mesh: THREE.Mesh;
-      targetPlanetId: string;
-      progress: number;
-      orbitAngle: number;
-    }[],
     gravityWave: null as THREE.Mesh | null,
     gravityWaveRadius: 0,
     gravityWaveActive: false
   });
 
-  // Toggle ambient warm cozy sci-fi drone
-  const toggleAmbientDrone = useCallback(() => {
-    const running = soundEngine.toggleCozyDrone();
-    setIsDroneActive(running);
-    setTelemetryLog(running ? 'SINTETIZADOR AMBIENTAL: ONDAS EB2/BB2 ACTIVAS' : 'SINTETIZADOR AMBIENTAL: STANDBY');
-  }, []);
-
-  // Launch a light probe towards the active planet (Spark mechanic)
+  // Emit probe signal sound (Spark mechanic)
   const handleLaunchProbe = useCallback(() => {
-    const target = stateRef.current.selectedPlanetId || 'planet-spark';
     soundEngine.playProbeLaunchSound();
-    setProbesCount((prev) => prev + 1);
-    setTelemetryLog(`SONDA KINÉTICA DESPACHADA >> ${target.toUpperCase()}`);
   }, []);
 
   // Trigger gravity pulse (Spark mechanic)
   const handleGravityPulse = useCallback(() => {
     soundEngine.playPulseSound();
+    if (stateRef.current.gravityWave && stateRef.current.selectedPlanetId) {
+      const selectedPos = stateRef.current.planetTargetPositions.get(stateRef.current.selectedPlanetId);
+      if (selectedPos) {
+        stateRef.current.gravityWave.position.copy(selectedPos);
+      }
+    }
     stateRef.current.gravityWaveActive = true;
     stateRef.current.gravityWaveRadius = 0.5;
-    setTelemetryLog('PULSO GRAVITATORIO RESONANTE DISPARADO');
   }, []);
 
   // Select planet
   const handleSelectPlanet = useCallback((planet: CelestialPlanet) => {
     setSelectedPlanet(planet);
-    setActiveChapterTab(planet.chapterNumber);
     stateRef.current.selectedPlanetId = planet.id;
     soundEngine.playPlanetResonance(planet.chapterNumber);
-    setTelemetryLog(`ENFOQUE TELEMÉTRICO >> ${planet.name.toUpperCase()}`);
   }, []);
 
-  // Build the complete standalone Single-File HTML bundle
-  const generateSingleFileHtml = (): string => {
-    return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portafolio Interactivo SGX: Showcase x System</title>
-  
-  <!-- Import Maps Fundacionales SGX (Grimorio V2026.5) -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: #0A1128;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overflow: hidden;
-      height: 100vh;
-      width: 100vw;
-    }
-    #canvas-container {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .hud-header {
-      position: absolute;
-      top: 16px;
-      left: 20px;
-      z-index: 10;
-      background: rgba(14, 23, 54, 0.85);
-      border: 1px solid rgba(81, 230, 196, 0.3);
-      padding: 10px 18px;
-      border-radius: 8px;
-      backdrop-filter: blur(12px);
-      font-size: 13px;
-    }
-    .hud-header h1 {
-      font-size: 14px;
-      color: #51E6C4;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-    .hud-header p {
-      color: #94a3b8;
-      font-size: 11px;
-      margin-top: 2px;
-    }
-    .hud-dock {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      display: flex;
-      gap: 12px;
-      background: rgba(14, 23, 54, 0.9);
-      border: 1px solid rgba(81, 230, 196, 0.35);
-      padding: 10px 18px;
-      border-radius: 30px;
-      backdrop-filter: blur(14px);
-    }
-    .btn {
-      background: rgba(81, 230, 196, 0.12);
-      border: 1px solid #51E6C4;
-      color: #51E6C4;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .btn:hover {
-      background: #51E6C4;
-      color: #0A1128;
-    }
-    .btn-purple {
-      background: rgba(94, 83, 204, 0.15);
-      border-color: #5E53CC;
-      color: #b8b1ff;
-    }
-    .btn-purple:hover {
-      background: #5E53CC;
-      color: #ffffff;
-    }
-    .drawer {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      bottom: 20px;
-      width: 440px;
-      max-width: calc(100vw - 40px);
-      background: rgba(14, 23, 54, 0.96);
-      border: 1px solid rgba(81, 230, 196, 0.35);
-      border-radius: 12px;
-      z-index: 20;
-      display: none;
-      flex-direction: column;
-      padding: 24px;
-      overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    }
-    .drawer.active { display: flex; }
-    .close-btn {
-      align-self: flex-end;
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 18px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <div id="canvas-container"></div>
-  
-  <div class="hud-header">
-    <h1>SGX.SHOWCASE × SGX.SYSTEM</h1>
-    <p>Portafolio Interactivo · Observatorio Cósmico (60 FPS)</p>
-  </div>
-
-  <div class="hud-dock">
-    <button class="btn" id="btn-probe">✦ Lanzar Sonda</button>
-    <button class="btn btn-purple" id="btn-pulse">◎ Pulso de Espacio</button>
-    <button class="btn" id="btn-audio">♫ Audio Drone</button>
-  </div>
-
-  <div class="drawer" id="portfolio-drawer">
-    <button class="close-btn" id="btn-close-drawer">✕</button>
-    <div id="drawer-content" style="margin-top: 12px;"></div>
-  </div>
-
-  <script type="module">
-    import * as THREE from 'three';
-    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-    // Scene & Renderer
-    const container = document.getElementById('canvas-container');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0A1128);
-    scene.fog = new THREE.FogExp2(0x0A1128, 0.012);
-
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1.4, 4.8);
-    camera.lookAt(0, 0.8, -2.0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-    container.appendChild(renderer.domElement);
-
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    pmrem.dispose();
-
-    // Studio Lighting
-    const keyLight = new THREE.DirectionalLight(0xdef8ff, 1.8);
-    keyLight.position.set(4, 8, 5);
-    scene.add(keyLight);
-
-    const hemiLight = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.7);
-    scene.add(hemiLight);
-
-    // Starfield
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 1200;
-    const starPos = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i += 3) {
-      starPos[i] = (Math.random() - 0.5) * 80;
-      starPos[i + 1] = (Math.random() - 0.5) * 60;
-      starPos[i + 2] = -10 - Math.random() * 50;
-    }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0x51E6C4, size: 0.18, transparent: true, opacity: 0.65 });
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
-
-    // Observation Platform
-    const floorGeo = new THREE.CylinderGeometry(4.5, 5, 0.4, 32);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0e1736, roughness: 0.35, metalness: 0.85 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.set(0, -0.2, 2.5);
-    scene.add(floor);
-
-    // Geometric Character (Third-Person, Back to Camera)
-    const charGroup = new THREE.Group();
-    charGroup.position.set(0, 0, 3.2);
-
-    const helmetGeo = new THREE.DodecahedronGeometry(0.24);
-    const helmetMat = new THREE.MeshStandardMaterial({ color: 0x141f45, roughness: 0.25, metalness: 0.85 });
-    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
-    helmet.position.set(0, 1.25, 0);
-    charGroup.add(helmet);
-
-    const visorGeo = new THREE.BoxGeometry(0.22, 0.05, 0.06);
-    const visorMat = new THREE.MeshBasicMaterial({ color: 0x51E6C4 });
-    const visor = new THREE.Mesh(visorGeo, visorMat);
-    visor.position.set(0, 1.25, -0.12);
-    charGroup.add(visor);
-
-    const torsoGeo = new THREE.BoxGeometry(0.48, 0.65, 0.28);
-    const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0f1833, roughness: 0.4, metalness: 0.7 });
-    const torso = new THREE.Mesh(torsoGeo, torsoMat);
-    torso.position.set(0, 0.75, 0);
-    charGroup.add(torso);
-
-    const spineGeo = new THREE.BoxGeometry(0.08, 0.55, 0.05);
-    const spineMat = new THREE.MeshBasicMaterial({ color: 0x5E53CC });
-    const spine = new THREE.Mesh(spineGeo, spineMat);
-    spine.position.set(0, 0.78, 0.15);
-    charGroup.add(spine);
-
-    scene.add(charGroup);
-
-    // Rectangular Holographic Viewport
-    const vpGroup = new THREE.Group();
-    vpGroup.position.set(0, 1.2, 0.2);
-
-    const frameOuterGeo = new THREE.BoxGeometry(7.2, 4.2, 0.08);
-    const frameEdges = new THREE.EdgesGeometry(frameOuterGeo);
-    const frameLineMat = new THREE.LineBasicMaterial({ color: 0x51E6C4, linewidth: 2 });
-    const frameLines = new THREE.LineSegments(frameEdges, frameLineMat);
-    vpGroup.add(frameLines);
-
-    const paneGeo = new THREE.PlaneGeometry(7.1, 4.1);
-    const paneMat = new THREE.MeshPhysicalMaterial({
-      color: 0x51E6C4,
-      transmission: 0.85,
-      opacity: 0.15,
-      transparent: true,
-      roughness: 0.1
-    });
-    const pane = new THREE.Mesh(paneGeo, paneMat);
-    vpGroup.add(pane);
-    scene.add(vpGroup);
-
-    // Planetary System
-    const planets = [
-      { id: 'spark', name: 'Planeta Spark', color: 0x51E6C4, r: 0.55, ox: 2.6, oy: 1.3, speed: 0.45, chapter: 'Mecánicas Lúdicas & Físicas SGX.Spark' },
-      { id: 'story', name: 'Planeta Story', color: 0x5E53CC, r: 0.75, ox: 4.0, oy: 1.8, speed: 0.25, hasRing: true, chapter: 'Narrativa & Manifiesto SGX.Story' },
-      { id: 'nexus', name: 'Planeta Nexus', color: 0x51E6C4, r: 0.65, ox: 5.4, oy: 2.2, speed: 0.18, isWire: true, chapter: 'Bóveda de Proyectos de Portafolio' }
-    ];
-
-    const planetMeshes = [];
-    planets.forEach((p, idx) => {
-      const pGroup = new THREE.Group();
-      const pGeo = new THREE.SphereGeometry(p.r, 32, 32);
-      const pMat = new THREE.MeshStandardMaterial({
-        color: p.color,
-        roughness: 0.3,
-        metalness: 0.6,
-        wireframe: !!p.isWire
-      });
-      const mesh = new THREE.Mesh(pGeo, pMat);
-      mesh.userData = p;
-      pGroup.add(mesh);
-
-      if (p.hasRing) {
-        const ringGeo = new THREE.RingGeometry(p.r * 1.4, p.r * 2.2, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x8C82FF, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = Math.PI * 0.4;
-        pGroup.add(ring);
+  // Close selected planet on Escape
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' && stateRef.current.selectedPlanetId) {
+        setSelectedPlanet(null);
+        stateRef.current.selectedPlanetId = null;
       }
-
-      scene.add(pGroup);
-      planetMeshes.push({ group: pGroup, mesh, data: p, angle: idx * 2 });
-    });
-
-    // Raycaster for click selection
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2(-999, -999);
-    window.addEventListener('pointerdown', (e) => {
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const targets = planetMeshes.map(pm => pm.mesh);
-      const hits = raycaster.intersectObjects(targets);
-      if (hits.length > 0) {
-        const p = hits[0].object.userData;
-        openDrawer(p);
-      }
-    });
-
-    const drawer = document.getElementById('portfolio-drawer');
-    const drawerContent = document.getElementById('drawer-content');
-    function openDrawer(p) {
-      drawer.classList.add('active');
-      drawerContent.innerHTML = \`
-        <h2 style="color: #51E6C4; font-size: 18px; margin-bottom: 8px;">\${p.name}</h2>
-        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">\${p.chapter}</p>
-        <div style="background: rgba(255,255,255,0.05); padding: 14px; border-radius: 8px; border-left: 3px solid #51E6C4; margin-bottom: 16px;">
-          <strong style="color: #e2e8f0; font-size: 13px;">Exploración del Portafolio:</strong>
-          <p style="color: #cbd5e1; font-size: 12px; margin-top: 6px; line-height: 1.5;">
-            Este mundo integra la interacción en tiempo real del pilar Spark con la fuerza narrativa de Story. Código optimizado a 60 FPS sin dependencias externas.
-          </p>
-        </div>
-      \`;
-    }
-    document.getElementById('btn-close-drawer').addEventListener('click', () => {
-      drawer.classList.remove('active');
-    });
-
-    // Web Audio Synthesizer
-    let audioCtx = null;
-    document.getElementById('btn-audio').addEventListener('click', () => {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(77.78, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      setTimeout(() => osc.stop(), 3000);
-    });
-
-    // 60 FPS Render Loop
-    let clock = new THREE.Clock();
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
-
-      // Gentle character breathing
-      helmet.position.y = 1.25 + Math.sin(time * 1.5) * 0.015;
-      torso.position.y = 0.75 + Math.sin(time * 1.5) * 0.008;
-
-      // Orbit planets
-      planetMeshes.forEach(pm => {
-        pm.angle += pm.data.speed * delta;
-        const x = Math.cos(pm.angle) * pm.data.ox;
-        const y = Math.sin(pm.angle) * pm.data.oy + 1.2;
-        const z = -2.5 + Math.sin(pm.angle) * 0.6;
-        pm.group.position.set(x, y, z);
-        pm.mesh.rotation.y += 0.8 * delta;
-      });
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
-</body>
-</html>`;
-  };
-
-  const handleDownloadSingleFile = () => {
-    soundEngine.playClickSound();
-    const html = generateSingleFileHtml();
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sgx-showcase-system-portfolio-single-file.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setTelemetryLog('PAQUETE DESCARGADO: SGX Single-File HTML Standalone');
-  };
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   // Main Three.js Scene Setup & Loop (PBR, RoomEnvironment, Zero-GC, 60 FPS)
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // Dimensions
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
+    let isDisposed = false;
+
+    const getSafeDimensions = () => {
+      const rawW = container.clientWidth || window.innerWidth || document.documentElement.clientWidth || 1280;
+      const rawH = container.clientHeight || window.innerHeight || document.documentElement.clientHeight || 720;
+      return {
+        width: Math.max(Math.round(rawW), 1),
+        height: Math.max(Math.round(rawH), 1)
+      };
+    };
+
+    // Dimensions (guaranteed >= 1 so aspect ratio is never NaN/0)
+    const { width, height } = getSafeDimensions();
 
     // 1. Scene & Cozy Sci-Fi Atmosphere
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0A1128); // Deep space blue #0A1128
     scene.fog = new THREE.FogExp2(0x0A1128, 0.012);
 
-    // 2. Camera Setup (3rd-Person behind the character gazing at the viewport)
-    const camera = new THREE.PerspectiveCamera(46, width / height, 0.1, 120);
-    camera.position.set(0, 1.45, 5.0);
-    const cameraLookTarget = new THREE.Vector3(0, 0.95, -2.5);
-    camera.lookAt(cameraLookTarget);
+    // 2. Camera Setup: Fixed Reference Home Pose + Live Animated Camera
+    const HOME_CAM_POS = new THREE.Vector3(0, 2.55, 5.2);
+    const HOME_LOOK_TARGET = new THREE.Vector3(0, 0.65, -2.5);
 
-    // 3. WebGL Renderer
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
-      stencil: false,
-      depth: true
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const homeCamera = new THREE.PerspectiveCamera(42, width / height, 0.1, 120);
+    homeCamera.position.copy(HOME_CAM_POS);
+    homeCamera.lookAt(HOME_LOOK_TARGET);
+    homeCamera.updateProjectionMatrix();
+    homeCamera.updateMatrixWorld(true);
+
+    const _homeRight = new THREE.Vector3();
+    const _homeUp = new THREE.Vector3();
+    const _homeBack = new THREE.Vector3();
+    homeCamera.matrixWorld.extractBasis(_homeRight, _homeUp, _homeBack);
+
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 120);
+    camera.position.copy(HOME_CAM_POS);
+    camera.lookAt(HOME_LOOK_TARGET);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+
+    const currentCamPos = HOME_CAM_POS.clone();
+    const currentLookTarget = HOME_LOOK_TARGET.clone();
+    const _desiredCamPos = HOME_CAM_POS.clone();
+    const _desiredLookTarget = HOME_LOOK_TARGET.clone();
+    const _axisWorldPos = new THREE.Vector3();
+
+    // 3. WebGL Renderer with Software-WebGL Guard & Fallback Safety
+    const isSoftwareGl = (() => {
+      try {
+        const probe = document.createElement('canvas');
+        const gl = (probe.getContext('webgl2') || probe.getContext('webgl')) as WebGLRenderingContext | null;
+        if (!gl) return true;
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
+        const gpu = String(gl.getParameter(param));
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
+        return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
+      } catch {
+        return false;
+      }
+    })();
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isSoftwareGl,
+        alpha: false,
+        powerPreference: 'high-performance',
+        depth: true
+      });
+    } catch {
+      renderer = new THREE.WebGLRenderer({ alpha: false });
+    }
+
+    renderer.setClearColor(0x0A1128, 1);
+    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height, true);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = true;
+    renderer.toneMappingExposure = 1.18;
+    renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+    };
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
+
+    container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // 4. RoomEnvironment for pristine PBR reflection (Grimoire Cap II & Three.js skill)
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-    pmremGenerator.dispose();
+    // 4. RoomEnvironment for pristine PBR reflection (wrapped safely for all GPU drivers)
+    try {
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmremGenerator.dispose();
+    } catch (envErr) {
+      console.warn('PMREM environment fallback active:', envErr);
+    }
 
     // 5. Studio Lighting Rig
-    // Warm key light
-    const keyLight = new THREE.DirectionalLight(0xdef8ff, 1.8);
-    keyLight.position.set(4, 7, 4);
-    keyLight.castShadow = true;
+    const ambientLight = new THREE.AmbientLight(0x8fa8ff, 0.38);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xdef8ff, 1.85);
+    keyLight.position.set(4, 7, 5);
+    keyLight.castShadow = !isSoftwareGl;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.camera.left = -8;
+    keyLight.shadow.camera.right = 8;
+    keyLight.shadow.camera.top = 8;
+    keyLight.shadow.camera.bottom = -8;
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
     // Cool fill & rim lights in #51E6C4 and #5E53CC
-    const hemiLight = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.65);
+    const hemiLight = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.72);
     scene.add(hemiLight);
 
-    const rimLight = new THREE.DirectionalLight(0x5E53CC, 1.4);
+    const rimLight = new THREE.DirectionalLight(0x5E53CC, 1.35);
     rimLight.position.set(-5, 3, -4);
     scene.add(rimLight);
 
@@ -693,335 +352,169 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
     const starMaterial = new THREE.PointsMaterial({
-      size: 0.16,
+      size: 0.18,
       vertexColors: true,
       transparent: true,
-      opacity: 0.75
+      opacity: 0.85,
+      fog: false
     });
     const starField = new THREE.Points(starGeometry, starMaterial);
     scene.add(starField);
 
-    // 7. Observatory Deck (Platform with recessed cybernetic lighting)
-    const deckGroup = new THREE.Group();
-    deckGroup.position.set(0, 0, 2.8);
-
-    // Hexagonal chamfered floor slab
-    const floorGeo = new THREE.CylinderGeometry(4.8, 5.2, 0.45, 32);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x0e1736,
-      roughness: 0.35,
-      metalness: 0.85
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.set(0, -0.22, 0);
-    floor.receiveShadow = true;
-    deckGroup.add(floor);
-
-    // Glowing border inlay ring in #51E6C4
-    const ringInlayGeo = new THREE.RingGeometry(4.2, 4.28, 36);
-    const ringInlayMat = new THREE.MeshBasicMaterial({
-      color: 0x51E6C4,
-      side: THREE.DoubleSide
-    });
-    const ringInlay = new THREE.Mesh(ringInlayGeo, ringInlayMat);
-    ringInlay.rotation.x = -Math.PI / 2;
-    ringInlay.position.set(0, 0.015, 0);
-    deckGroup.add(ringInlay);
-
-    // Secondary purple inlay in #5E53CC
-    const ringInlay2Geo = new THREE.RingGeometry(3.6, 3.65, 36);
-    const ringInlay2Mat = new THREE.MeshBasicMaterial({
-      color: 0x5E53CC,
-      side: THREE.DoubleSide
-    });
-    const ringInlay2 = new THREE.Mesh(ringInlay2Geo, ringInlay2Mat);
-    ringInlay2.rotation.x = -Math.PI / 2;
-    ringInlay2.position.set(0, 0.016, 0);
-    deckGroup.add(ringInlay2);
-
-    // Observation Console / Balustrade Rail
-    const railGeo = new THREE.BoxGeometry(2.4, 0.12, 0.35);
-    const railMat = new THREE.MeshStandardMaterial({
-      color: 0x141f45,
-      roughness: 0.25,
-      metalness: 0.9
-    });
-    const rail = new THREE.Mesh(railGeo, railMat);
-    rail.position.set(0, 0.86, -0.9);
-    rail.castShadow = true;
-    deckGroup.add(rail);
-
-    // Console holographic display strip
-    const consoleDisplayGeo = new THREE.PlaneGeometry(2.1, 0.08);
-    const consoleDisplayMat = new THREE.MeshBasicMaterial({
-      color: 0x51E6C4,
-      transparent: true,
-      opacity: 0.85
-    });
-    const consoleDisplay = new THREE.Mesh(consoleDisplayGeo, consoleDisplayMat);
-    consoleDisplay.rotation.x = -Math.PI * 0.35;
-    consoleDisplay.position.set(0, 0.93, -0.88);
-    deckGroup.add(consoleDisplay);
-
-    scene.add(deckGroup);
-
-    // 8. Geometric Sci-Fi Character (Third-Person, Back to Camera)
-    // Assembled as a composite 8-part procedural model
-    const characterGroup = new THREE.Group();
-    characterGroup.position.set(0, 0, 3.1);
-
-    // 8a. Faceted Helmet
-    const helmetGeo = new THREE.DodecahedronGeometry(0.25, 1);
-    const helmetMat = new THREE.MeshStandardMaterial({
-      color: 0x121c3b,
-      roughness: 0.28,
-      metalness: 0.88
-    });
-    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
-    helmet.position.set(0, 1.35, 0);
-    helmet.castShadow = true;
-    characterGroup.add(helmet);
-    stateRef.current.characterHead = helmet;
-
-    // Rear luminescent sensor strip (#51E6C4)
-    const sensorStripGeo = new THREE.BoxGeometry(0.2, 0.04, 0.06);
-    const sensorStripMat = new THREE.MeshBasicMaterial({ color: 0x51E6C4 });
-    const sensorStrip = new THREE.Mesh(sensorStripGeo, sensorStripMat);
-    sensorStrip.position.set(0, 1.36, -0.16);
-    helmet.add(sensorStrip);
-
-    // 8b. Neck & Collar
-    const neckGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.12, 12);
-    const neckMat = new THREE.MeshStandardMaterial({ color: 0x0a1024, roughness: 0.5, metalness: 0.6 });
-    const neck = new THREE.Mesh(neckGeo, neckMat);
-    neck.position.set(0, 1.18, 0);
-    characterGroup.add(neck);
-
-    // 8c. Torso Armor & Cyber Spine
-    const torsoGeo = new THREE.BoxGeometry(0.52, 0.68, 0.32);
-    const torsoMat = new THREE.MeshStandardMaterial({
-      color: 0x0e1736,
-      roughness: 0.35,
-      metalness: 0.8
-    });
-    const torso = new THREE.Mesh(torsoGeo, torsoMat);
-    torso.position.set(0, 0.82, 0);
-    torso.castShadow = true;
-    characterGroup.add(torso);
-
-    // Dorsal luminescent power spine in #5E53CC
-    const spineGeo = new THREE.BoxGeometry(0.09, 0.58, 0.05);
-    const spineMat = new THREE.MeshBasicMaterial({ color: 0x5E53CC });
-    const spine = new THREE.Mesh(spineGeo, spineMat);
-    spine.position.set(0, 0.84, 0.17);
-    characterGroup.add(spine);
-    stateRef.current.characterSpine = spine;
-
-    // 8d. Shoulder Pauldrons (Left & Right)
-    const pauldronGeo = new THREE.BoxGeometry(0.18, 0.22, 0.26);
-    const pauldronMat = new THREE.MeshStandardMaterial({
-      color: 0x141f45,
-      roughness: 0.2,
-      metalness: 0.9
-    });
-    const leftPauldron = new THREE.Mesh(pauldronGeo, pauldronMat);
-    leftPauldron.position.set(-0.35, 1.05, 0);
-    characterGroup.add(leftPauldron);
-
-    const rightPauldron = new THREE.Mesh(pauldronGeo, pauldronMat);
-    rightPauldron.position.set(0.35, 1.05, 0);
-    characterGroup.add(rightPauldron);
-
-    // 8e. Cybernetic Arms resting gracefully on the rail
-    const armGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.52, 10);
-    const armMat = new THREE.MeshStandardMaterial({ color: 0x0a1024, roughness: 0.4, metalness: 0.7 });
-
-    const leftArm = new THREE.Mesh(armGeo, armMat);
-    leftArm.rotation.set(-Math.PI * 0.28, 0, Math.PI * 0.08);
-    leftArm.position.set(-0.32, 0.78, -0.22);
-    characterGroup.add(leftArm);
-
-    const rightArm = new THREE.Mesh(armGeo, armMat);
-    rightArm.rotation.set(-Math.PI * 0.28, 0, -Math.PI * 0.08);
-    rightArm.position.set(0.32, 0.78, -0.22);
-    characterGroup.add(rightArm);
-
-    // 8f. Waist & Cyber Greaves (Lower Body)
-    const waistGeo = new THREE.BoxGeometry(0.44, 0.18, 0.28);
-    const waistMat = new THREE.MeshStandardMaterial({ color: 0x141f45, roughness: 0.3, metalness: 0.85 });
-    const waist = new THREE.Mesh(waistGeo, waistMat);
-    waist.position.set(0, 0.42, 0);
-    characterGroup.add(waist);
-
-    const legGeo = new THREE.BoxGeometry(0.16, 0.46, 0.2);
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x0e1736, roughness: 0.4, metalness: 0.8 });
-    const leftLeg = new THREE.Mesh(legGeo, legMat);
-    leftLeg.position.set(-0.16, 0.2, 0);
-    characterGroup.add(leftLeg);
-
-    const rightLeg = new THREE.Mesh(legGeo, legMat);
-    rightLeg.position.set(0.16, 0.2, 0);
-    characterGroup.add(rightLeg);
-
-    scene.add(characterGroup);
-
-    // 9. The Rectangular Holographic Viewport (Framing the Cosmic Vista)
-    const viewportGroup = new THREE.Group();
-    viewportGroup.position.set(0, 1.25, 0.0);
-
-    const vpWidth = 7.6;
-    const vpHeight = 4.4;
-
-    // Outer neon wireframe border
-    const vpBoxGeo = new THREE.BoxGeometry(vpWidth, vpHeight, 0.04);
-    const vpEdges = new THREE.EdgesGeometry(vpBoxGeo);
-    const vpLineMat = new THREE.LineBasicMaterial({
-      color: 0x51E6C4,
-      linewidth: 2,
-      transparent: true,
-      opacity: 0.85
-    });
-    const vpLines = new THREE.LineSegments(vpEdges, vpLineMat);
-    viewportGroup.add(vpLines);
-
-    // 4 High-tech Corner Brackets in #5E53CC & #51E6C4
-    const cornerSize = 0.45;
-    const bracketGeo = new THREE.BufferGeometry();
-    const bracketPoints = new Float32Array([
-      // Top-Left bracket
-      -vpWidth / 2 + cornerSize, vpHeight / 2, 0.02,
-      -vpWidth / 2, vpHeight / 2, 0.02,
-      -vpWidth / 2, vpHeight / 2 - cornerSize, 0.02,
-      // Top-Right bracket
-      vpWidth / 2 - cornerSize, vpHeight / 2, 0.02,
-      vpWidth / 2, vpHeight / 2, 0.02,
-      vpWidth / 2, vpHeight / 2 - cornerSize, 0.02,
-      // Bottom-Left bracket
-      -vpWidth / 2 + cornerSize, -vpHeight / 2, 0.02,
-      -vpWidth / 2, -vpHeight / 2, 0.02,
-      -vpWidth / 2, -vpHeight / 2 + cornerSize, 0.02,
-      // Bottom-Right bracket
-      vpWidth / 2 - cornerSize, -vpHeight / 2, 0.02,
-      vpWidth / 2, -vpHeight / 2, 0.02,
-      vpWidth / 2, -vpHeight / 2 + cornerSize, 0.02,
-    ]);
-    bracketGeo.setAttribute('position', new THREE.BufferAttribute(bracketPoints, 3));
-    const bracketMat = new THREE.LineBasicMaterial({ color: 0x5E53CC, linewidth: 3 });
-    const cornerBrackets = new THREE.LineSegments(bracketGeo, bracketMat);
-    viewportGroup.add(cornerBrackets);
-
-    // Semi-translucent holographic glass pane
-    const glassPaneGeo = new THREE.PlaneGeometry(vpWidth - 0.05, vpHeight - 0.05);
-    const glassPaneMat = new THREE.MeshPhysicalMaterial({
-      color: 0x51E6C4,
-      transmission: 0.92,
-      opacity: 0.12,
-      transparent: true,
-      roughness: 0.08,
-      ior: 1.35,
-      depthWrite: false
-    });
-    const glassPane = new THREE.Mesh(glassPaneGeo, glassPaneMat);
-    glassPane.position.set(0, 0, 0.01);
-    viewportGroup.add(glassPane);
-
-    // Subtle laser grid markers on glass
-    const gridHelper = new THREE.GridHelper(vpWidth, 12, 0x51E6C4, 0x5E53CC);
-    gridHelper.rotation.x = Math.PI / 2;
-    gridHelper.position.set(0, 0, 0.015);
-    (gridHelper.material as THREE.Material).transparent = true;
-    (gridHelper.material as THREE.Material).opacity = 0.08;
-    viewportGroup.add(gridHelper);
-
-    scene.add(viewportGroup);
-
-    // 10. The Floating Planetary System (Interactive Celestial Bodies)
+    // 7. Static Planetary System (5 Interactive Celestial GLB Bodies anchored to "Posiciones de Planetas.png")
     stateRef.current.planetsMeshes.clear();
     stateRef.current.planetTargetPositions.clear();
 
-    const planetMeshesList: { group: THREE.Group; mesh: THREE.Mesh; planet: CelestialPlanet }[] = [];
+    interface Planet3DItem {
+      group: THREE.Group;
+      hitMesh: THREE.Mesh;
+      rotAxis: THREE.Object3D;
+      planet: CelestialPlanet;
+      baseScale: number;
+      loadedModel?: THREE.Group;
+    }
+
+    const planetMeshesList: Planet3DItem[] = [];
+    const planetById = new Map<string, Planet3DItem>();
+    const hitTargets: THREE.Object3D[] = [];
+    const gltfLoader = new GLTFLoader();
 
     CELESTIAL_PLANETS.forEach((planet) => {
       const pGroup = new THREE.Group();
 
-      // Planet Sphere Geometry
-      const sphereGeo = new THREE.SphereGeometry(planet.radius, 36, 36);
-      const sphereMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(planet.color),
-        roughness: 0.28,
-        metalness: 0.65,
-        wireframe: !!planet.isWireframe
-      });
-      const pMesh = new THREE.Mesh(sphereGeo, sphereMat);
-      pMesh.castShadow = true;
-      pMesh.receiveShadow = true;
-      pMesh.userData = { planetId: planet.id, planet };
-      pGroup.add(pMesh);
-
-      // Atmospheric Glow Shell
-      const glowGeo = new THREE.SphereGeometry(planet.radius * 1.14, 24, 24);
-      const glowMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(planet.color),
+      // Invisible spherical hit proxy for accurate raycast selection
+      const hitRadiusFactor = planet.hasRings ? 1.45 : 1.15;
+      const hitGeo = new THREE.SphereGeometry(planet.radius * hitRadiusFactor, 16, 16);
+      const hitMat = new THREE.MeshBasicMaterial({
         transparent: true,
-        opacity: 0.18,
-        wireframe: true
+        opacity: 0,
+        depthWrite: false
       });
-      const glowMesh = new THREE.Mesh(glowGeo, glowMat);
-      pGroup.add(glowMesh);
+      const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+      hitMesh.userData = { planetId: planet.id, planet };
+      pGroup.add(hitMesh);
+      hitTargets.push(hitMesh);
 
-      // Celestial Rings if defined (e.g. Planet Story)
-      if (planet.hasRings && planet.ringsRadius) {
-        const ringGeo = new THREE.RingGeometry(planet.radius * 1.3, planet.ringsRadius, 48);
-        const ringMat = new THREE.MeshBasicMaterial({
-          color: new THREE.Color(planet.secondaryColor),
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.55
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = Math.PI * 0.42;
-        ring.rotation.y = Math.PI * 0.1;
-        pGroup.add(ring);
-      }
+      // Default rotator axis group while GLB streams
+      const defaultRotAxis = new THREE.Group();
+      defaultRotAxis.name = 'rotation_axis';
+      pGroup.add(defaultRotAxis);
 
-      // Orbiting Spark Particles for Planet Spark
-      if (planet.domain === 'SPARK') {
-        const sparkOrbitGeo = new THREE.BufferGeometry();
-        const sparkCount = 32;
-        const sparkPositions = new Float32Array(sparkCount * 3);
-        for (let s = 0; s < sparkCount; s++) {
-          const sTheta = (s / sparkCount) * Math.PI * 2;
-          const sDist = planet.radius * 1.45 + (Math.random() - 0.5) * 0.2;
-          sparkPositions[s * 3] = Math.cos(sTheta) * sDist;
-          sparkPositions[s * 3 + 1] = (Math.random() - 0.5) * 0.3;
-          sparkPositions[s * 3 + 2] = Math.sin(sTheta) * sDist;
-        }
-        sparkOrbitGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
-        const sparkMat = new THREE.PointsMaterial({
-          color: 0x51E6C4,
-          size: 0.08,
-          transparent: true,
-          opacity: 0.9
-        });
-        const sparkMesh = new THREE.Points(sparkOrbitGeo, sparkMat);
-        pGroup.add(sparkMesh);
-      }
-
-      // Data satellite shard for Planet Nexus
-      if (planet.domain === 'NEXUS') {
-        const shardGeo = new THREE.OctahedronGeometry(0.18);
-        const shardMat = new THREE.MeshBasicMaterial({ color: 0x5E53CC, wireframe: true });
-        const shard = new THREE.Mesh(shardGeo, shardMat);
-        shard.position.set(planet.radius * 1.7, 0.3, 0);
-        pGroup.add(shard);
-      }
+      // High-performance placeholder sphere while GLB streams
+      const placeholderGeo = new THREE.SphereGeometry(planet.radius, 28, 28);
+      const placeholderMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(planet.color),
+        roughness: 0.45,
+        metalness: 0.1
+      });
+      const placeholderMesh = new THREE.Mesh(placeholderGeo, placeholderMat);
+      defaultRotAxis.add(placeholderMesh);
 
       scene.add(pGroup);
       stateRef.current.planetsMeshes.set(planet.id, pGroup);
-      planetMeshesList.push({ group: pGroup, mesh: pMesh, planet });
+
+      const item: Planet3DItem = {
+        group: pGroup,
+        hitMesh,
+        rotAxis: defaultRotAxis,
+        planet,
+        baseScale: 1.0
+      };
+      planetMeshesList.push(item);
+      planetById.set(planet.id, item);
+
+      // Asynchronous GLB Loader (Local asset with Wix CDN fallback)
+      const onModelLoaded = (gltf: { scene: THREE.Group }) => {
+        if (isDisposed) return;
+
+        defaultRotAxis.remove(placeholderMesh);
+        placeholderGeo.dispose();
+        placeholderMat.dispose();
+
+        const modelScene = gltf.scene;
+        modelScene.updateMatrixWorld(true);
+
+        // Locate existing 'rotation_axis' node in the GLTF file
+        const modelRotAxis = modelScene.getObjectByName('rotation_axis');
+        if (modelRotAxis) {
+          // Normalize non-uniform Empty display scale while preserving authored position & orientation
+          modelRotAxis.scale.set(1, 1, 1);
+          modelScene.updateMatrixWorld(true);
+
+          // Reparent sibling meshes (Sphere, and Torus rings for Saturn) into rotation_axis preserving relative transforms
+          const otherChildren = [...modelScene.children].filter((c) => c !== modelRotAxis);
+          otherChildren.forEach((child) => {
+            modelRotAxis.attach(child);
+          });
+
+          pGroup.remove(defaultRotAxis);
+          pGroup.add(modelScene);
+          item.rotAxis = modelRotAxis;
+        } else {
+          defaultRotAxis.add(modelScene);
+          item.rotAxis = defaultRotAxis;
+        }
+
+        modelScene.scale.setScalar(planet.radius);
+        modelScene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        item.loadedModel = modelScene;
+      };
+
+      gltfLoader.load(
+        planet.modelFile,
+        (gltf) => onModelLoaded(gltf),
+        undefined,
+        (err) => {
+          console.warn(`Local model load failed for ${planet.name}, trying CDN:`, err);
+          gltfLoader.load(
+            planet.fallbackModelUrl,
+            (gltf) => onModelLoaded(gltf),
+            undefined,
+            (cdnErr) => console.error(`Failed to load ${planet.name} from CDN:`, cdnErr)
+          );
+        }
+      );
     });
 
-    // 11. Gravity Shockwave Mesh (Spark mechanic)
+    // Compute exact static 3D world positions from homeCamera so zooming & resizing never shift planet coordinates
+    const PLANE_DEPTH = 8.0;
+    const _camSpacePos = new THREE.Vector3();
+
+    const updateStaticPlanetLayout = () => {
+      const safeAspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : 16 / 9;
+      homeCamera.aspect = safeAspect;
+      homeCamera.updateProjectionMatrix();
+      homeCamera.updateMatrixWorld(true);
+
+      const halfHeight = PLANE_DEPTH * Math.tan(THREE.MathUtils.degToRad(homeCamera.fov * 0.5));
+      const halfWidth = halfHeight * safeAspect;
+      const responsiveScale = THREE.MathUtils.clamp(safeAspect / 1.6, 0.65, 1.0);
+
+      planetMeshesList.forEach((item) => {
+        const ndcX = item.planet.screenX * 2 - 1;
+        const ndcY = 1 - item.planet.screenY * 2;
+
+        _camSpacePos.set(ndcX * halfWidth, ndcY * halfHeight, -PLANE_DEPTH);
+        _camSpacePos.applyMatrix4(homeCamera.matrixWorld);
+
+        item.group.position.copy(_camSpacePos);
+        item.baseScale = responsiveScale;
+        if (!Number.isFinite(item.group.scale.x) || item.group.scale.x <= 0.01) {
+          item.group.scale.setScalar(responsiveScale);
+        }
+        stateRef.current.planetTargetPositions.set(item.planet.id, _camSpacePos.clone());
+      });
+    };
+
+    updateStaticPlanetLayout();
+
+    // 8. Gravity Shockwave Mesh (Spark mechanic)
     const waveGeo = new THREE.RingGeometry(0.1, 0.25, 64);
     const waveMat = new THREE.MeshBasicMaterial({
       color: 0x51E6C4,
@@ -1031,12 +524,12 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     });
     const gravityWave = new THREE.Mesh(waveGeo, waveMat);
     gravityWave.rotation.x = Math.PI / 2;
-    gravityWave.position.set(0, 1.2, 0);
+    gravityWave.position.set(0, 0.85, -2.5);
     gravityWave.visible = false;
     scene.add(gravityWave);
     stateRef.current.gravityWave = gravityWave;
 
-    // 12. Mouse / Touch Pointer Tracking & Raycasting
+    // 9. Mouse / Touch Pointer Tracking & Raycasting
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const rect = container.getBoundingClientRect();
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -1050,7 +543,6 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
       onPointerMove(e);
       stateRef.current.raycaster.setFromCamera(stateRef.current.pointer, camera);
 
-      const hitTargets = planetMeshesList.map((item) => item.mesh);
       const intersects = stateRef.current.raycaster.intersectObjects(hitTargets, false);
 
       if (intersects.length > 0) {
@@ -1059,85 +551,176 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
         if (planetData) {
           handleSelectPlanet(planetData);
         }
+      } else if (stateRef.current.selectedPlanetId !== null) {
+        setSelectedPlanet(null);
+        stateRef.current.selectedPlanetId = null;
       }
     };
 
     container.addEventListener('mousemove', onPointerMove);
     container.addEventListener('pointerdown', onPointerDown);
 
-    // 13. High-Performance 60 FPS Render Loop (Zero GC)
-    let animationFrameId: number;
+    // 10. High-Performance 60 FPS Render Loop (Zero GC, Static Planet Positions + Smooth Zoom to rotation_axis)
+    let frameId = 0;
+    let isTimerFrame = false;
     const clock = new THREE.Clock();
+    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
+    const CAM_ZOOM_LAMBDA = 4.8;
 
-    const _vec = new THREE.Vector3();
-    const _targetPos = new THREE.Vector3();
+    const afterDraw = (cb: () => void) => {
+      const gl = renderer.getContext() as WebGL2RenderingContext | null;
+      if (gl && typeof gl.fenceSync === 'function') {
+        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        gl.flush();
+        const poll = () => {
+          if (isDisposed) return;
+          const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
+          if (state === gl.UNSIGNALED) {
+            isTimerFrame = true;
+            frameId = window.setTimeout(poll, 5);
+          } else {
+            if (sync) gl.deleteSync(sync);
+            isTimerFrame = true;
+            frameId = window.setTimeout(cb, 80);
+          }
+        };
+        isTimerFrame = true;
+        frameId = window.setTimeout(poll, 5);
+      } else {
+        isTimerFrame = true;
+        frameId = window.setTimeout(cb, 80);
+      }
+    };
 
     const renderLoop = () => {
-      animationFrameId = requestAnimationFrame(renderLoop);
+      if (isDisposed) return;
 
-      const delta = Math.min(clock.getDelta(), 0.1);
-      const time = clock.getElapsedTime();
-      const speedMult = stateRef.current.orbitSpeedFactor;
+      const rawDelta = clock.getDelta();
+      const delta = Number.isFinite(rawDelta) ? Math.min(Math.max(rawDelta, 0), 0.1) : 0.016;
 
-      // Subtle gentle breathing & idle swaying of character
-      if (characterGroup) {
-        const breath = Math.sin(time * 1.4) * 0.012;
-        characterGroup.position.y = breath;
-        if (stateRef.current.characterHead) {
-          // Head subtly tracks mouse pointer X
-          stateRef.current.characterHead.rotation.y = THREE.MathUtils.damp(
-            stateRef.current.characterHead.rotation.y,
-            -stateRef.current.pointer.x * 0.28,
-            4,
-            delta
-          );
+      // Planets hold static positions and rotate continuously relative to their local 'rotation_axis'
+      planetMeshesList.forEach((item) => {
+        const { group, rotAxis, planet, baseScale } = item;
+
+        // Continuous dextrorso (clockwise) spin around the model's local rotation_axis
+        if (rotAxis) {
+          rotAxis.rotateY(-0.65 * delta);
         }
-      }
 
-      // Viewport subtle ambient floating
-      if (viewportGroup) {
-        viewportGroup.position.y = 1.25 + Math.sin(time * 0.8) * 0.025;
-      }
-
-      // Orbital calculation for planets
-      planetMeshesList.forEach((item, index) => {
-        const { group, mesh, planet } = item;
-        const currentAngle = planet.orbitAngle + time * planet.orbitSpeed * 0.45 * speedMult;
-
-        // Position along elliptical orbit inside & through the viewport
-        const x = Math.cos(currentAngle) * planet.orbitRadiusX;
-        const y = Math.sin(currentAngle) * planet.orbitRadiusY + 1.25;
-        const z = -2.6 + Math.sin(currentAngle * 0.8) * 0.85;
-
-        _targetPos.set(x, y, z);
-        group.position.copy(_targetPos);
-        stateRef.current.planetTargetPositions.set(planet.id, _targetPos.clone());
-
-        // Self rotation
-        mesh.rotation.y += 0.65 * delta;
-
-        // Check if selected or hovered to pulse subtle scale
+        // Tactile scale response when hovered or selected while keeping static coordinates
         const isSelected = stateRef.current.selectedPlanetId === planet.id;
-        const isHovered = stateRef.current.hoveredPlanetId === planet.id;
-        const targetScale = isSelected ? 1.2 : isHovered ? 1.12 : 1.0;
-        mesh.scale.setScalar(THREE.MathUtils.damp(mesh.scale.x, targetScale, 6, delta));
+        const isPlanetHovered = stateRef.current.hoveredPlanetId === planet.id;
+        const safeBase = Number.isFinite(baseScale) && baseScale > 0 ? baseScale : 1.0;
+        const targetScale = safeBase * (isSelected ? 1.14 : isPlanetHovered ? 1.08 : 1.0);
+        const nextScale =
+          Number.isFinite(group.scale.x) && group.scale.x > 0
+            ? THREE.MathUtils.damp(group.scale.x, targetScale, 6, delta)
+            : targetScale;
+        group.scale.setScalar(nextScale);
       });
 
-      // Raycast pointer hover check (throttled smoothly)
+      // Camera Zoom-In toward selected planet's 'rotation_axis' (keeping top of planet visible inside CRT overlay)
+      // and smooth return to original camera pose when menu closes
+      const activeId = stateRef.current.selectedPlanetId;
+      const selectedItem = activeId ? planetById.get(activeId) : undefined;
+
+      if (selectedItem) {
+        selectedItem.group.updateMatrixWorld(true);
+        selectedItem.rotAxis.getWorldPosition(_axisWorldPos);
+
+        const vw = Math.max(container.clientWidth || window.innerWidth || 1280, 1);
+        const aspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : 16 / 9;
+        const activeScale = (Number.isFinite(selectedItem.baseScale) ? selectedItem.baseScale : 1.0) * 1.14;
+        const sphereWorldRadius = selectedItem.planet.radius * activeScale;
+        const vertWorldRadius = sphereWorldRadius * 1.08;
+        const horizWorldRadius = selectedItem.planet.hasRings
+          ? sphereWorldRadius * 1.86
+          : sphereWorldRadius * 1.05;
+
+        let targetScreenX: number;
+        let targetScreenY: number;
+        let maxVertScreenRadius: number;
+        let maxHorizScreenRadius: number;
+
+        if (vw >= 640) {
+          // Frame cleanly in the unobstructed CRT glass left of the open right-side panel,
+          // guaranteeing the top of the planet stays well below the top CRT bezel (~14.5%)
+          const leftSafe = 0.11;
+          const drawerRightPx = 24;
+          const drawerWidthPx = Math.min(390, vw * 0.44);
+          const drawerLeftFrac = Math.min(0.89, 1.0 - (drawerRightPx + drawerWidthPx) / vw);
+          const rightSafe = Math.max(0.36, drawerLeftFrac - 0.025);
+
+          targetScreenX = THREE.MathUtils.clamp((leftSafe + rightSafe) * 0.5, 0.28, 0.41);
+          targetScreenY = 0.51;
+          maxVertScreenRadius = 0.27; // Top edge >= 0.24 (well inside CRT overlay top bezel at ~0.145)
+          maxHorizScreenRadius = Math.max(
+            0.13,
+            Math.min(targetScreenX - leftSafe, rightSafe - targetScreenX) * 0.92
+          );
+        } else {
+          targetScreenX = 0.34;
+          targetScreenY = 0.48;
+          maxVertScreenRadius = 0.22;
+          maxHorizScreenRadius = 0.22;
+        }
+
+        const minHalfHVert = vertWorldRadius / (2 * maxVertScreenRadius);
+        const minHalfHHoriz = horizWorldRadius / (2 * maxHorizScreenRadius * aspect);
+        const zoomDist = Math.max(minHalfHVert / tanHalfFov, minHalfHHoriz / tanHalfFov, 2.5);
+
+        const halfH = zoomDist * tanHalfFov;
+        const halfW = halfH * aspect;
+        const ndcX = targetScreenX * 2 - 1;
+        const ndcY = 1 - targetScreenY * 2;
+
+        // Shift camera ray parallel to home basis so 'rotation_axis' projects cleanly to (targetScreenX, targetScreenY)
+        _desiredLookTarget
+          .copy(_axisWorldPos)
+          .addScaledVector(_homeRight, -ndcX * halfW)
+          .addScaledVector(_homeUp, -ndcY * halfH);
+
+        _desiredCamPos
+          .copy(_desiredLookTarget)
+          .addScaledVector(_homeBack, zoomDist);
+      } else {
+        _desiredCamPos.copy(HOME_CAM_POS);
+        _desiredLookTarget.copy(HOME_LOOK_TARGET);
+      }
+
+      if (!Number.isFinite(currentCamPos.x) || !Number.isFinite(currentCamPos.y) || !Number.isFinite(currentCamPos.z)) {
+        currentCamPos.copy(_desiredCamPos);
+      } else {
+        currentCamPos.x = THREE.MathUtils.damp(currentCamPos.x, _desiredCamPos.x, CAM_ZOOM_LAMBDA, delta);
+        currentCamPos.y = THREE.MathUtils.damp(currentCamPos.y, _desiredCamPos.y, CAM_ZOOM_LAMBDA, delta);
+        currentCamPos.z = THREE.MathUtils.damp(currentCamPos.z, _desiredCamPos.z, CAM_ZOOM_LAMBDA, delta);
+      }
+
+      if (!Number.isFinite(currentLookTarget.x) || !Number.isFinite(currentLookTarget.y) || !Number.isFinite(currentLookTarget.z)) {
+        currentLookTarget.copy(_desiredLookTarget);
+      } else {
+        currentLookTarget.x = THREE.MathUtils.damp(currentLookTarget.x, _desiredLookTarget.x, CAM_ZOOM_LAMBDA, delta);
+        currentLookTarget.y = THREE.MathUtils.damp(currentLookTarget.y, _desiredLookTarget.y, CAM_ZOOM_LAMBDA, delta);
+        currentLookTarget.z = THREE.MathUtils.damp(currentLookTarget.z, _desiredLookTarget.z, CAM_ZOOM_LAMBDA, delta);
+      }
+
+      camera.position.copy(currentCamPos);
+      camera.lookAt(currentLookTarget);
+
+      // Raycast pointer hover check
       if (stateRef.current.pointer.x > -2) {
         stateRef.current.raycaster.setFromCamera(stateRef.current.pointer, camera);
-        const hitTargets = planetMeshesList.map((item) => item.mesh);
         const intersects = stateRef.current.raycaster.intersectObjects(hitTargets, false);
 
         if (intersects.length > 0) {
           const hovered = intersects[0].object.userData.planet as CelestialPlanet;
           if (hovered && hovered.id !== stateRef.current.hoveredPlanetId) {
             stateRef.current.hoveredPlanetId = hovered.id;
-            setHoveredPlanet(hovered);
+            setIsHovered(true);
           }
         } else if (stateRef.current.hoveredPlanetId !== null) {
           stateRef.current.hoveredPlanetId = null;
-          setHoveredPlanet(null);
+          setIsHovered(false);
         }
       }
 
@@ -1157,42 +740,48 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
         }
       }
 
-      // Smooth camera interpolation towards selected planet
-      if (stateRef.current.selectedPlanetId) {
-        const targetPos = stateRef.current.planetTargetPositions.get(stateRef.current.selectedPlanetId);
-        if (targetPos) {
-          cameraLookTarget.x = THREE.MathUtils.damp(cameraLookTarget.x, targetPos.x * 0.35, 3, delta);
-          cameraLookTarget.y = THREE.MathUtils.damp(cameraLookTarget.y, targetPos.y * 0.4 + 0.6, 3, delta);
-          camera.lookAt(cameraLookTarget);
-        }
-      } else {
-        cameraLookTarget.x = THREE.MathUtils.damp(cameraLookTarget.x, 0, 3, delta);
-        cameraLookTarget.y = THREE.MathUtils.damp(cameraLookTarget.y, 0.95, 3, delta);
-        camera.lookAt(cameraLookTarget);
-      }
-
       renderer.render(scene, camera);
+
+      if (isSoftwareGl) {
+        afterDraw(renderLoop);
+      } else {
+        isTimerFrame = false;
+        frameId = requestAnimationFrame(renderLoop);
+      }
     };
 
     renderLoop();
 
-    // Resize Handler
+    // Resize Handler (keeps static planet positions aligned with the CRT overlay across aspect ratios)
     const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      if (!container || isDisposed) return;
+      const rawW = container.clientWidth || window.innerWidth;
+      const rawH = container.clientHeight || window.innerHeight;
+      if (!rawW || !rawH || rawW <= 0 || rawH <= 0) return;
+      const w = Math.round(rawW);
+      const h = Math.round(rawH);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      renderer.setSize(w, h, true);
+      updateStaticPlanetLayout();
     };
     window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
 
     // Cleanup (Capítulo II.4 del Grimorio SGX: Desechar geometrías y texturas)
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      isDisposed = true;
+      if (isTimerFrame) {
+        clearTimeout(frameId);
+      } else {
+        cancelAnimationFrame(frameId);
+      }
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       container.removeEventListener('mousemove', onPointerMove);
       container.removeEventListener('pointerdown', onPointerDown);
+      renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
 
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh || obj instanceof THREE.Points || obj instanceof THREE.LineSegments) {
@@ -1211,18 +800,12 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     };
   }, [handleSelectPlanet]);
 
-  // Sync orbitSpeedFactor to ref
-  useEffect(() => {
-    stateRef.current.orbitSpeedFactor = orbitSpeedFactor;
-  }, [orbitSpeedFactor]);
-
   // Handle transmission send
   const handleSendTransmission = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim()) return;
     soundEngine.playPulseSound();
     setTransmissionSent(true);
-    setTelemetryLog('TRANSMISIÓN INTERESTELAR ENCRIPTADA >> ENVIADA CON ÉXITO');
     setTimeout(() => {
       setMessageText('');
       setSenderEmail('');
@@ -1231,183 +814,36 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
   };
 
   return (
-    <div className="relative w-full h-full min-h-full flex flex-col bg-[#0A1128] text-slate-100 overflow-hidden select-none">
-      {/* 3D WebGL Canvas Container */}
-      <div ref={mountRef} className="absolute inset-0 w-full h-full z-0 cursor-crosshair" />
-
-      {/* Top Left Minimalist Spec Badge (Three.js Directive: Unobstructed Center) */}
-      <div className="absolute top-4 left-6 z-20 flex flex-col gap-1.5 pointer-events-none">
-        <div className="flex items-center gap-2.5 bg-[#0e1736]/85 border border-[#51E6C4]/35 px-4 py-2 rounded-lg backdrop-blur-md pointer-events-auto shadow-lg">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#51E6C4] shadow-[0_0_8px_#51E6C4]" />
-          <span className="text-xs font-bold text-white font-heading tracking-wide">
-            SHOWCASE × SYSTEM
-          </span>
-          <span className="text-slate-500">|</span>
-          <span className="text-xs font-mono-telemetry text-[#51E6C4]">
-            60 FPS · 3RA PERSONA
-          </span>
-        </div>
-
-        {/* Telemetry Status Line */}
-        <div className="text-[11px] font-mono-telemetry text-slate-400 bg-[#0e1736]/70 px-3 py-1 rounded border border-[#5E53CC]/30 self-start pointer-events-auto">
-          {telemetryLog}
-        </div>
-      </div>
-
-      {/* Top Right Quick Actions (Single-File HTML & Ambient Audio) */}
-      <div className="absolute top-4 right-6 z-20 flex items-center gap-2.5">
-        <button
-          onClick={handleDownloadSingleFile}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#51E6C4]/15 border border-[#51E6C4]/50 text-[#51E6C4] hover:bg-[#51E6C4] hover:text-[#0A1128] transition-all shadow-md"
-          title="Descargar el portafolio completo en un solo archivo index.html listo para navegador"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Descargar Single-File</span>
-        </button>
-
-        <button
-          onClick={() => setIsSingleFileModalOpen(true)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#5E53CC]/20 border border-[#5E53CC]/50 text-[#b8b1ff] hover:bg-[#5E53CC] hover:text-white transition-all shadow-md"
-          title="Ver código Vanilla JS/CSS Single-File optimizado a 60 FPS"
-        >
-          <Code2 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Código Vanilla</span>
-        </button>
-
-        <button
-          onClick={toggleAmbientDrone}
-          className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
-            isDroneActive
-              ? 'bg-[#51E6C4] text-[#0A1128] border-[#51E6C4]'
-              : 'bg-[#0e1736]/85 text-slate-300 border-[#51E6C4]/30 hover:border-[#51E6C4]'
-          }`}
-          title="Activar drone armónico acogedor Web Audio (Eb2 / Bb2)"
-        >
-          {isDroneActive ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          <span className="hidden sm:inline">{isDroneActive ? 'Drone Activo' : 'Audio Drone'}</span>
-        </button>
-      </div>
-
-      {/* Planet Hover Telemetry Tooltip */}
-      {hoveredPlanet && !selectedPlanet && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none bg-[#0e1736]/90 border border-[#51E6C4]/60 px-5 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: hoveredPlanet.color, boxShadow: `0 0 10px ${hoveredPlanet.color}` }}
-          />
-          <div>
-            <div className="text-xs font-bold text-white font-heading">
-              {hoveredPlanet.name.toUpperCase()} · {hoveredPlanet.subtitle}
-            </div>
-            <div className="text-[11px] text-slate-400 font-mono-telemetry">
-              Clic para revelar capítulo de portafolio
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unified Bottom Control Dock (Three.js Directive 5: Zero Viewport Occlusion) */}
+    <div className="relative w-full h-full min-h-full text-slate-100 select-none">
+      {/* 3D WebGL Canvas Container (z-10: underneath the z-30 CRT overlay, above the page background) */}
       <div
-        className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-30 transition-transform duration-300 max-w-[94vw] ${
-          isHUDCollapsed ? 'translate-y-[calc(100%+20px)]' : 'translate-y-0'
-        }`}
-      >
-        {/* Toggle Collapse Tab */}
-        <button
-          onClick={() => setIsHUDCollapsed(!isHUDCollapsed)}
-          className="absolute -top-7 right-6 text-[10px] font-mono-telemetry tracking-wider bg-[#0e1736]/95 border border-[#51E6C4]/40 text-[#51E6C4] hover:text-white px-3 py-1 rounded-t-lg backdrop-blur-md shadow-lg"
-        >
-          {isHUDCollapsed ? '▴ MOSTRAR CONTROLES' : '▾ MODO ZEN'}
-        </button>
+        ref={mountRef}
+        className={`fixed inset-0 w-screen h-screen z-10 overflow-hidden ${isHovered ? 'cursor-pointer' : 'cursor-crosshair'}`}
+      />
 
-        <div className="bg-[#0e1736]/92 border border-[#51E6C4]/40 px-5 py-3 rounded-2xl backdrop-blur-md shadow-2xl flex flex-wrap items-center justify-between gap-4">
-          {/* Planet Switcher Quick Selector */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-mono-telemetry text-slate-400 mr-1.5 hidden md:inline">
-              PLANETAS:
-            </span>
-            {CELESTIAL_PLANETS.map((planet) => {
-              const isSelected = selectedPlanet?.id === planet.id;
-              return (
-                <button
-                  key={planet.id}
-                  onClick={() => handleSelectPlanet(planet)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isSelected
-                      ? 'bg-[#51E6C4] text-[#0A1128] font-bold shadow-[0_0_12px_rgba(81,230,196,0.5)]'
-                      : 'bg-[#141f45]/70 text-slate-300 hover:text-white hover:bg-[#141f45]'
-                  }`}
-                  style={{
-                    borderLeft: `3px solid ${planet.color}`
-                  }}
-                >
-                  <span>{planet.name.replace('Planeta ', '')}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="h-4 w-px bg-slate-700 hidden sm:block" />
-
-          {/* Spark Interactive Mechanics Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLaunchProbe}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#51E6C4]/15 border border-[#51E6C4]/40 text-[#51E6C4] hover:bg-[#51E6C4] hover:text-[#0A1128] transition-all"
-              title="Lanzar sonda de reconocimiento hacia el planeta objetivo"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Sonda ({probesCount})</span>
-            </button>
-
-            <button
-              onClick={handleGravityPulse}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#5E53CC]/20 border border-[#5E53CC]/40 text-[#b8b1ff] hover:bg-[#5E53CC] hover:text-white transition-all"
-              title="Disparar pulso gravitacional resonante"
-            >
-              <Radio className="w-3.5 h-3.5" />
-              <span>Pulso</span>
-            </button>
-
-            {/* Orbit Speed Selector */}
-            <div className="flex items-center gap-1 bg-[#141f45]/80 p-1 rounded-lg border border-slate-700">
-              {[0.4, 1.0, 2.2].map((spd) => (
-                <button
-                  key={spd}
-                  onClick={() => {
-                    setOrbitSpeedFactor(spd);
-                    soundEngine.playClickSound();
-                  }}
-                  className={`px-2 py-0.5 text-[10px] rounded font-mono-telemetry transition-colors ${
-                    orbitSpeedFactor === spd
-                      ? 'bg-[#51E6C4] text-[#0A1128] font-bold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {spd === 0.4 ? 'Zen' : spd === 1.0 ? '1x' : 'Warp'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Portfolio Story Drawer / Modal for Selected Planet */}
+      {/* Portfolio Story Drawer / Modal for Selected Planet (z-50: above the z-30 CRT overlay on the right side) */}
       {selectedPlanet && (
-        <div className="fixed top-16 right-6 bottom-24 w-[460px] max-w-[calc(100vw-3rem)] z-40 bg-[#0e1736]/96 border border-[#51E6C4]/45 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+        <div className="fixed top-4 bottom-4 right-4 sm:top-6 sm:bottom-6 sm:right-6 w-[390px] max-w-[calc(100vw-2rem)] sm:max-w-[44vw] z-50 bg-[#0e1736]/95 border border-[#51E6C4]/45 rounded-2xl shadow-2xl flex flex-col overflow-hidden select-none">
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0A1128]/70">
+          <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-[#0A1128]/90">
             <div className="flex items-center gap-3">
-              <div
-                className="w-3.5 h-3.5 rounded-full"
-                style={{ backgroundColor: selectedPlanet.color, boxShadow: `0 0 10px ${selectedPlanet.color}` }}
-              />
+              <div className="w-3 h-3 rounded-full bg-[#51E6C4] shadow-[0_0_10px_#51E6C4]" />
               <div>
-                <h3 className="text-base font-bold text-white font-heading">
-                  {selectedPlanet.name}
-                </h3>
-                <p className="text-xs text-[#51E6C4] font-mono-telemetry">
-                  {selectedPlanet.subtitle}
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white font-heading">
+                    {selectedPlanet.name}
+                  </h3>
+                  <span className="text-[10px] font-mono-telemetry px-2 py-0.5 rounded bg-[#5E53CC]/30 border border-[#5E53CC]/50 text-[#b8b1ff]">
+                    {selectedPlanet.modelName}
+                  </span>
+                </div>
+                <p className="text-xs text-[#51E6C4] font-mono-telemetry flex items-center gap-1.5 mt-0.5">
+                  <span>{selectedPlanet.subtitle}</span>
+                  <span className="text-[10px] text-slate-400">·</span>
+                  <span className="text-[10px] text-emerald-400 font-mono-telemetry flex items-center gap-1">
+                    <RotateCw className="w-2.5 h-2.5 animate-spin [animation-duration:6s]" />
+                    eje rotation_axis (Dextrorso)
+                  </span>
                 </p>
               </div>
             </div>
@@ -1479,7 +915,7 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                       onClick={handleLaunchProbe}
                       className="flex-1 py-2 text-xs font-bold rounded-lg bg-[#51E6C4] text-[#0A1128] hover:bg-[#51E6C4]/90 transition-all text-center"
                     >
-                      Lanzar Sonda a Órbita
+                      Emitir Pulso de Sonda
                     </button>
                     <button
                       onClick={handleGravityPulse}
@@ -1611,11 +1047,11 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
 
                 <div className="space-y-3">
                   {[
-                    { label: 'Three.js / WebGL / Shaders GLSL', pct: '98%', color: '#51E6C4' },
-                    { label: 'TypeScript / React / Arquitectura Frontend', pct: '95%', color: '#5E53CC' },
-                    { label: 'Web Audio API / Síntesis Sonora Procedural', pct: '92%', color: '#51E6C4' },
-                    { label: 'Optimización GPU & 60 FPS Profiling', pct: '96%', color: '#6366F1' },
-                    { label: 'Firebase / Firestore / Cloud Datastores', pct: '90%', color: '#51E6C4' },
+                    { label: 'Three.js / WebGL / Shaders GLSL', pct: '98%', barClass: 'w-[98%] bg-[#51E6C4]' },
+                    { label: 'TypeScript / React / Arquitectura Frontend', pct: '95%', barClass: 'w-[95%] bg-[#5E53CC]' },
+                    { label: 'Web Audio API / Síntesis Sonora Procedural', pct: '92%', barClass: 'w-[92%] bg-[#51E6C4]' },
+                    { label: 'Optimización GPU & 60 FPS Profiling', pct: '96%', barClass: 'w-[96%] bg-[#6366F1]' },
+                    { label: 'Firebase / Firestore / Cloud Datastores', pct: '90%', barClass: 'w-[90%] bg-[#51E6C4]' },
                   ].map((skill, sIdx) => (
                     <div key={sIdx} className="space-y-1">
                       <div className="flex justify-between text-xs">
@@ -1623,10 +1059,7 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                         <span className="font-mono-telemetry text-[#51E6C4]">{skill.pct}</span>
                       </div>
                       <div className="w-full h-1.5 bg-[#0A1128] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: skill.pct, backgroundColor: skill.color }}
-                        />
+                        <div className={`h-full rounded-full transition-all duration-500 ${skill.barClass}`} />
                       </div>
                     </div>
                   ))}
@@ -1728,56 +1161,6 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Ver Código Vanilla JS/CSS Single-File */}
-      {isSingleFileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#0e1736] border border-[#51E6C4]/40 w-full max-w-4xl max-h-[85vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#0A1128]/80">
-              <div className="flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-[#51E6C4]" />
-                <h3 className="text-sm font-bold text-white font-heading">
-                  Código Fuente Vanilla JS/CSS Single-File (Grimorio V2026.5)
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsSingleFileModalOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-[#070c1e] text-[11px] font-mono-telemetry text-slate-300 flex-1 overflow-y-auto">
-              <pre className="whitespace-pre-wrap select-text">{generateSingleFileHtml()}</pre>
-            </div>
-
-            <div className="flex items-center justify-between px-6 py-3 border-t border-slate-800 bg-[#0A1128]/90">
-              <span className="text-xs text-slate-400">
-                100% autocontenido · Cero instalaciones Node.js · Ejecutable con doble clic
-              </span>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(generateSingleFileHtml());
-                    soundEngine.playClickSound();
-                    setTelemetryLog('CÓDIGO COPIADO AL PORTAPAPELES');
-                  }}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#5E53CC]/30 border border-[#5E53CC] text-white hover:bg-[#5E53CC] transition-colors"
-                >
-                  Copiar Todo el Código
-                </button>
-                <button
-                  onClick={handleDownloadSingleFile}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-[#51E6C4] text-[#0A1128] hover:bg-[#51E6C4]/90 transition-colors"
-                >
-                  Descargar Archivo HTML
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

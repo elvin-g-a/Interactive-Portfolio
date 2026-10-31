@@ -55,23 +55,24 @@ export const SHOWCASE_SYSTEM_MODULE_JS = `/**
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export class ShowcaseSystemPortfolioEngine {
   constructor(container) {
     this.container = container;
     this.clock = new THREE.Clock();
-    this.orbitSpeedFactor = 1.0;
     this.probesCount = 0;
-    this.activePlanetId = 'spark';
+    this.activePlanetId = null;
 
     this.initScene();
     this.initLights();
-    this.initObservatory();
-    this.initCharacter();
-    this.initViewport();
+    this.initOverlay();
     this.initPlanetarySystem();
     this.initRaycasting();
     this.initAudioSynthesizer();
+
+    this.onResize = this.onResize.bind(this);
+    window.addEventListener('resize', this.onResize);
 
     this.animate = this.animate.bind(this);
     this.renderLoop = requestAnimationFrame(this.animate);
@@ -82,148 +83,276 @@ export class ShowcaseSystemPortfolioEngine {
     this.scene.background = new THREE.Color(0x0A1128);
     this.scene.fog = new THREE.FogExp2(0x0A1128, 0.012);
 
-    const w = this.container.clientWidth || window.innerWidth;
-    const h = this.container.clientHeight || window.innerHeight;
+    const w = Math.max(Math.round(this.container.clientWidth || window.innerWidth || 1280), 1);
+    const h = Math.max(Math.round(this.container.clientHeight || window.innerHeight || 720), 1);
 
-    this.camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 100);
-    this.camera.position.set(0, 1.45, 5.0);
-    this.camera.lookAt(0, 0.95, -2.5);
+    this.homeCamPos = new THREE.Vector3(0, 2.55, 5.2);
+    this.homeLookTarget = new THREE.Vector3(0, 0.65, -2.5);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.homeCamera = new THREE.PerspectiveCamera(42, w / h, 0.1, 120);
+    this.homeCamera.position.copy(this.homeCamPos);
+    this.homeCamera.lookAt(this.homeLookTarget);
+    this.homeCamera.updateProjectionMatrix();
+    this.homeCamera.updateMatrixWorld(true);
+
+    this.homeRight = new THREE.Vector3();
+    this.homeUp = new THREE.Vector3();
+    this.homeBack = new THREE.Vector3();
+    this.homeCamera.matrixWorld.extractBasis(this.homeRight, this.homeUp, this.homeBack);
+
+    this.camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 120);
+    this.camera.position.copy(this.homeCamPos);
+    this.camera.lookAt(this.homeLookTarget);
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld(true);
+
+    this.currentCamPos = this.homeCamPos.clone();
+    this.currentLookTarget = this.homeLookTarget.clone();
+    this.desiredCamPos = this.homeCamPos.clone();
+    this.desiredLookTarget = this.homeLookTarget.clone();
+    this.axisWorldPos = new THREE.Vector3();
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x0A1128, 1);
     this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.18;
+    this.renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;position:fixed;inset:0;z-index:10;';
     this.container.appendChild(this.renderer.domElement);
 
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    pmrem.dispose();
+    try {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    } catch (e) {}
   }
 
   initLights() {
-    const key = new THREE.DirectionalLight(0xdef8ff, 1.8);
-    key.position.set(4, 7, 4);
+    this.scene.add(new THREE.AmbientLight(0x8fa8ff, 0.38));
+
+    const key = new THREE.DirectionalLight(0xdef8ff, 1.85);
+    key.position.set(4, 7, 5);
     this.scene.add(key);
 
-    const hemi = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.7);
+    const hemi = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.72);
     this.scene.add(hemi);
+
+    const rim = new THREE.DirectionalLight(0x5E53CC, 1.35);
+    rim.position.set(-5, 3, -4);
+    this.scene.add(rim);
+
+    const starCount = 1400;
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(starCount * 3);
+    const starCol = new Float32Array(starCount * 3);
+    const c1 = new THREE.Color(0x51E6C4);
+    const c2 = new THREE.Color(0x5E53CC);
+    const c3 = new THREE.Color(0xffffff);
+    for (let i = 0; i < starCount; i++) {
+      const i3 = i * 3;
+      const r = 18 + Math.random() * 55;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      starPos[i3] = r * Math.sin(phi) * Math.cos(theta);
+      starPos[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      starPos[i3 + 2] = -r * Math.abs(Math.cos(phi)) - 6;
+      const pick = Math.random();
+      const c = pick < 0.45 ? c1 : pick < 0.85 ? c2 : c3;
+      starCol[i3] = c.r;
+      starCol[i3 + 1] = c.g;
+      starCol[i3 + 2] = c.b;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    this.scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.18, vertexColors: true, transparent: true, opacity: 0.85, fog: false })));
   }
 
-  initObservatory() {
-    const floorGeo = new THREE.CylinderGeometry(4.8, 5.2, 0.45, 32);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0e1736, roughness: 0.35, metalness: 0.85 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.set(0, -0.22, 2.8);
-    this.scene.add(floor);
-  }
-
-  initCharacter() {
-    this.characterGroup = new THREE.Group();
-    this.characterGroup.position.set(0, 0, 3.1);
-
-    const helmetGeo = new THREE.DodecahedronGeometry(0.25, 1);
-    const helmetMat = new THREE.MeshStandardMaterial({ color: 0x121c3b, roughness: 0.28, metalness: 0.88 });
-    this.helmet = new THREE.Mesh(helmetGeo, helmetMat);
-    this.helmet.position.set(0, 1.35, 0);
-    this.characterGroup.add(this.helmet);
-
-    const sensorGeo = new THREE.BoxGeometry(0.2, 0.04, 0.06);
-    const sensorMat = new THREE.MeshBasicMaterial({ color: 0x51E6C4 });
-    const sensor = new THREE.Mesh(sensorGeo, sensorMat);
-    sensor.position.set(0, 1.36, -0.16);
-    this.helmet.add(sensor);
-
-    const torsoGeo = new THREE.BoxGeometry(0.52, 0.68, 0.32);
-    const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0e1736, roughness: 0.35, metalness: 0.8 });
-    const torso = new THREE.Mesh(torsoGeo, torsoMat);
-    torso.position.set(0, 0.82, 0);
-    this.characterGroup.add(torso);
-
-    this.scene.add(this.characterGroup);
-  }
-
-  initViewport() {
-    this.viewportGroup = new THREE.Group();
-    this.viewportGroup.position.set(0, 1.25, 0.0);
-
-    const vpBoxGeo = new THREE.BoxGeometry(7.6, 4.4, 0.04);
-    const vpEdges = new THREE.EdgesGeometry(vpBoxGeo);
-    const vpLineMat = new THREE.LineBasicMaterial({ color: 0x51E6C4, linewidth: 2, transparent: true, opacity: 0.85 });
-    const vpLines = new THREE.LineSegments(vpEdges, vpLineMat);
-    this.viewportGroup.add(vpLines);
-
-    this.scene.add(this.viewportGroup);
+  initOverlay() {
+    const overlay = document.createElement('img');
+    overlay.src = '/assets/aistudio/viewport_6e3741b8.png';
+    overlay.alt = '';
+    overlay.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;object-fit:fill;image-rendering:pixelated;pointer-events:none;z-index:30;';
+    document.body.appendChild(overlay);
+    this.overlayElement = overlay;
   }
 
   initPlanetarySystem() {
     this.planets = [
-      { id: 'spark', name: 'Planeta Spark', color: 0x51E6C4, r: 0.65, ox: 2.8, oy: 1.4, speed: 0.45, chapter: 'Mecánicas Interactivas & Spark Engine' },
-      { id: 'story', name: 'Planeta Story', color: 0x5E53CC, r: 0.85, ox: 4.2, oy: 1.9, speed: 0.25, hasRing: true, chapter: 'Crónicas del Viajero & Manifiesto' },
-      { id: 'nexus', name: 'Planeta Nexus', color: 0x51E6C4, r: 0.75, ox: 5.6, oy: 2.4, speed: 0.18, isWire: true, chapter: 'Bóveda de Obras y Proyectos' }
+      { id: 'spark', name: 'Planeta Spark', color: 0xE06D53, r: 0.68, sx: 0.7294, sy: 0.6810, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_58d95a433d44426aa5a65ad4c19b447c.glb', chapter: 'Mecánicas Interactivas & Spark Engine' },
+      { id: 'story', name: 'Planeta Story', color: 0xD8C39D, r: 0.72, sx: 0.4948, sy: 0.4741, hasRings: true, url: 'https://static.wixstatic.com/3d/06361e_e1bdc16d3c47453193f9fa07c26d7c96.glb', chapter: 'Crónicas del Viajero & Manifiesto' },
+      { id: 'nexus', name: 'Planeta Nexus', color: 0x4A90E2, r: 0.66, sx: 0.7258, sy: 0.3199, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_1bd1dd160e044c68b253c3a864854dcd.glb', chapter: 'Bóveda de Obras y Proyectos' },
+      { id: 'matrix', name: 'Planeta Matrix', color: 0x41729F, r: 0.65, sx: 0.2484, sy: 0.7093, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_a4fdaaedd8124afa93ccd77bdcc6f0c8.glb', chapter: 'El Bastión Tecnológico' },
+      { id: 'beacon', name: 'Planeta Beacon', color: 0xA0A0A0, r: 0.63, sx: 0.2529, sy: 0.3157, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_6ac838581067467e921a0510f23a427f.glb', chapter: 'El Faro de Contacto' }
     ];
 
+    const loader = new GLTFLoader();
     this.planetMeshes = [];
-    this.planets.forEach((p, idx) => {
-      const group = new THREE.Group();
-      const geo = new THREE.SphereGeometry(p.r, 32, 32);
-      const mat = new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.3, metalness: 0.6, wireframe: !!p.isWire });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.userData = p;
-      group.add(mesh);
+    this.hitTargets = [];
 
-      if (p.hasRing) {
-        const ringGeo = new THREE.RingGeometry(p.r * 1.3, p.r * 1.8, 36);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x8C82FF, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = Math.PI * 0.4;
-        group.add(ring);
-      }
+    this.planets.forEach((p) => {
+      const group = new THREE.Group();
+      const hitMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(p.r * (p.hasRings ? 1.45 : 1.15), 16, 16),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      hitMesh.userData = { planetId: p.id };
+      group.add(hitMesh);
+      this.hitTargets.push(hitMesh);
+
+      const defaultRotAxis = new THREE.Group();
+      defaultRotAxis.name = 'rotation_axis';
+      group.add(defaultRotAxis);
+
+      const geo = new THREE.SphereGeometry(p.r, 32, 32);
+      const mat = new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.45, metalness: 0.1 });
+      const placeholder = new THREE.Mesh(geo, mat);
+      defaultRotAxis.add(placeholder);
 
       this.scene.add(group);
-      this.planetMeshes.push({ group, mesh, data: p, angle: idx * 2.1 });
+      const entry = { group, hitMesh, rotAxis: defaultRotAxis, data: p, baseScale: 1.0 };
+      this.planetMeshes.push(entry);
+
+      loader.load(p.url, (gltf) => {
+        defaultRotAxis.remove(placeholder);
+        geo.dispose();
+        mat.dispose();
+        const modelScene = gltf.scene;
+        modelScene.updateMatrixWorld(true);
+        const modelRotAxis = modelScene.getObjectByName('rotation_axis');
+        if (modelRotAxis) {
+          modelRotAxis.scale.set(1, 1, 1);
+          modelScene.updateMatrixWorld(true);
+          [...modelScene.children].filter((c) => c !== modelRotAxis).forEach((child) => modelRotAxis.attach(child));
+          group.remove(defaultRotAxis);
+          group.add(modelScene);
+          entry.rotAxis = modelRotAxis;
+        } else {
+          defaultRotAxis.add(modelScene);
+        }
+        modelScene.scale.setScalar(p.r);
+      });
     });
+
+    this.updateStaticLayout();
+  }
+
+  updateStaticLayout() {
+    this.homeCamera.aspect = this.camera.aspect;
+    this.homeCamera.updateProjectionMatrix();
+    this.homeCamera.updateMatrixWorld(true);
+    const depth = 8.0;
+    const halfH = depth * Math.tan(THREE.MathUtils.degToRad(this.homeCamera.fov * 0.5));
+    const halfW = halfH * this.homeCamera.aspect;
+    const scale = THREE.MathUtils.clamp(this.homeCamera.aspect / 1.6, 0.65, 1.0);
+
+    this.planetMeshes.forEach((pm) => {
+      const ndcX = pm.data.sx * 2 - 1;
+      const ndcY = 1 - pm.data.sy * 2;
+      const pos = new THREE.Vector3(ndcX * halfW, ndcY * halfH, -depth).applyMatrix4(this.homeCamera.matrixWorld);
+      pm.group.position.copy(pos);
+      pm.baseScale = scale;
+      pm.group.scale.setScalar(scale);
+    });
+  }
+
+  onResize() {
+    const w = this.container.clientWidth || window.innerWidth;
+    const h = this.container.clientHeight || window.innerHeight;
+    if (!w || !h) return;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+    this.updateStaticLayout();
   }
 
   initRaycasting() {
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2(-999, -999);
+    this.onPointerDown = (e) => {
+      const rect = this.container.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      this.pointer.x = ((cx - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((cy - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      const hits = this.raycaster.intersectObjects(this.hitTargets, false);
+      this.activePlanetId = hits.length > 0 ? hits[0].object.userData.planetId : null;
+    };
+    this.container.addEventListener('pointerdown', this.onPointerDown);
+  }
+
+  closePlanetMenu() {
+    this.activePlanetId = null;
   }
 
   initAudioSynthesizer() {
-    // Cozy ambient harmonic synthesizer Web Audio (Eb2 / Bb2)
     this.audioCtx = null;
   }
 
   launchProbe() {
     this.probesCount++;
-    console.log('[SGX.Spark] Sonda kinética despachada. Total:', this.probesCount);
   }
 
   animate() {
     this.renderLoop = requestAnimationFrame(this.animate);
-    const delta = this.clock.getDelta();
-    const time = this.clock.getElapsedTime();
+    const delta = Math.min(this.clock.getDelta(), 0.1);
+    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5));
 
-    if (this.helmet) {
-      this.helmet.position.y = 1.35 + Math.sin(time * 1.4) * 0.012;
+    let selectedEntry = null;
+    this.planetMeshes.forEach((pm) => {
+      if (pm.rotAxis) {
+        pm.rotAxis.rotateY(-0.65 * delta);
+      }
+      if (pm.data.id === this.activePlanetId) {
+        selectedEntry = pm;
+      }
+    });
+
+    if (selectedEntry) {
+      selectedEntry.group.updateMatrixWorld(true);
+      selectedEntry.rotAxis.getWorldPosition(this.axisWorldPos);
+      const sphereRadius = selectedEntry.data.r * selectedEntry.baseScale * 1.14;
+      const vertRadius = sphereRadius * 1.08;
+      const horizRadius = selectedEntry.data.hasRings ? sphereRadius * 1.86 : sphereRadius * 1.05;
+      const zoomDist = Math.max(
+        (vertRadius / (2 * 0.27)) / tanHalfFov,
+        (horizRadius / (2 * 0.22 * this.camera.aspect)) / tanHalfFov,
+        2.5
+      );
+      const halfH = zoomDist * tanHalfFov;
+      const halfW = halfH * this.camera.aspect;
+      const ndcX = 0.35 * 2 - 1;
+      const ndcY = 1 - 0.51 * 2;
+      this.desiredLookTarget.copy(this.axisWorldPos).addScaledVector(this.homeRight, -ndcX * halfW).addScaledVector(this.homeUp, -ndcY * halfH);
+      this.desiredCamPos.copy(this.desiredLookTarget).addScaledVector(this.homeBack, zoomDist);
+    } else {
+      this.desiredCamPos.copy(this.homeCamPos);
+      this.desiredLookTarget.copy(this.homeLookTarget);
     }
 
-    this.planetMeshes.forEach(pm => {
-      pm.angle += pm.data.speed * delta * this.orbitSpeedFactor;
-      const x = Math.cos(pm.angle) * pm.data.ox;
-      const y = Math.sin(pm.angle) * pm.data.oy + 1.25;
-      const z = -2.6 + Math.sin(pm.angle * 0.8) * 0.85;
-      pm.group.position.set(x, y, z);
-      pm.mesh.rotation.y += 0.65 * delta;
-    });
+    this.currentCamPos.x = THREE.MathUtils.damp(this.currentCamPos.x, this.desiredCamPos.x, 4.8, delta);
+    this.currentCamPos.y = THREE.MathUtils.damp(this.currentCamPos.y, this.desiredCamPos.y, 4.8, delta);
+    this.currentCamPos.z = THREE.MathUtils.damp(this.currentCamPos.z, this.desiredCamPos.z, 4.8, delta);
+    this.currentLookTarget.x = THREE.MathUtils.damp(this.currentLookTarget.x, this.desiredLookTarget.x, 4.8, delta);
+    this.currentLookTarget.y = THREE.MathUtils.damp(this.currentLookTarget.y, this.desiredLookTarget.y, 4.8, delta);
+    this.currentLookTarget.z = THREE.MathUtils.damp(this.currentLookTarget.z, this.desiredLookTarget.z, 4.8, delta);
+    this.camera.position.copy(this.currentCamPos);
+    this.camera.lookAt(this.currentLookTarget);
 
     this.renderer.render(this.scene, this.camera);
   }
 
   destroy() {
     cancelAnimationFrame(this.renderLoop);
+    window.removeEventListener('resize', this.onResize);
+    if (this.onPointerDown) {
+      this.container.removeEventListener('pointerdown', this.onPointerDown);
+    }
+    if (this.overlayElement && this.overlayElement.parentNode) {
+      this.overlayElement.parentNode.removeChild(this.overlayElement);
+    }
     this.renderer.dispose();
   }
 }
