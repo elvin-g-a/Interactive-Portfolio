@@ -1,0 +1,5 @@
+Heading: ¡Bienvenidos!
+
+Body: (PLACEHOLDER) Soy Elvin G. Andrades. Mi misión es resolver la falta de imaginación y la rigidez visual en los entornos creativos actuales. Usando los pilares de SGX.Showcase y SGX.System, estoy creando un portafolio con un diseño innovador: una vista espacial inmersiva desde una nave donde cada planeta explora una faceta diferente del portfolio, completo con una atmósfera de serenidad y curiosidad, invitando a explorar todo lo que el portafolio tiene para ofrecer.
+
+(Añade este gif debajo del texto sin estirar: https://drive.google.com/file/d/1CykoyHC0sxVZjgUtuMHVJ6iVYjUBdJZC/)

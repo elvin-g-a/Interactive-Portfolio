@@ -1,5 +1,0 @@
-earth.glb = https://static.wixstatic.com/3d/06361e_1bd1dd160e044c68b253c3a864854dcd.glb
-moon.glb = https://static.wixstatic.com/3d/06361e_6ac838581067467e921a0510f23a427f.glb
-mars. glb = https://static.wixstatic.com/3d/06361e_58d95a433d44426aa5a65ad4c19b447c.glb
-saturn.glb = https://static.wixstatic.com/3d/06361e_e1bdc16d3c47453193f9fa07c26d7c96.glb
-neptune.glb = https://static.wixstatic.com/3d/06361e_a4fdaaedd8124afa93ccd77bdcc6f0c8.glb

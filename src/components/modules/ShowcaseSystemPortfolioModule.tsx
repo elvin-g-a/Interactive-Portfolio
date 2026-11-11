@@ -7,20 +7,39 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { soundEngine } from '../../services/sound-effects';
 import {
-  Send,
-  CheckCircle2,
-  X,
-  RotateCw
+  VERTICAL_VIEWPORT_MEDIA_QUERY,
+  MOBILE_ONLY_MEDIA_QUERY,
+  TABLET_LANDSCAPE_MEDIA_QUERY,
+  MOBILE_SELECTED_OVERLAY_SHIFT_PNG,
+  isMobileOrTabletViewport,
+  isMobileOnlyViewport,
+  isTabletLandscapeViewport
+} from '../../config/sgx-config';
+import {
+  GALLERY_ARTWORKS,
+  GALLERY_CATEGORIES,
+  GalleryArtworkItem,
+  GalleryCategoryId
+} from '../../config/gallery-exhibition';
+import {
+  Maximize2,
+  X
 } from 'lucide-react';
 
 interface ShowcaseSystemPortfolioModuleProps {
   onOpenRemix: () => void;
   isMuted: boolean;
+  isVerticalLayout?: boolean;
+  isMobileOnly?: boolean;
+  isDesktopOrTabletLandscape?: boolean;
+  isMobileOrTabletDevice?: boolean;
+  onPlanetSelectionChange?: (hasSelectedPlanet: boolean) => void;
 }
 
 // Portfolio Chapters linked to Celestial Bodies (Static Positions per "Posiciones de Planetas.png")
@@ -34,6 +53,8 @@ export interface CelestialPlanet {
   radius: number;
   screenX: number;
   screenY: number;
+  verticalScreenX: number;
+  verticalScreenY: number;
   hasRings?: boolean;
   ringsRadius?: number;
   isWireframe?: boolean;
@@ -41,104 +62,176 @@ export interface CelestialPlanet {
   chapterNumber: number;
   modelFile: string;
   fallbackModelUrl: string;
-  modelName: string;
 }
 
 const CELESTIAL_PLANETS: CelestialPlanet[] = [
   {
-    id: 'planet-spark',
-    name: 'Planeta Spark',
-    subtitle: 'El Crisol · Motor Interactivo & Físicas',
-    domain: 'SPARK',
-    color: '#E06D53',
-    secondaryColor: '#51E6C4',
-    radius: 0.68,
-    screenX: 0.7294,
-    screenY: 0.6810,
-    description: 'Mecánicas de fricción cero, bucles de simulación a 60 FPS y gamificación interactiva.',
-    chapterNumber: 1,
-    modelFile: '/models/mars.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_58d95a433d44426aa5a65ad4c19b447c.glb',
-    modelName: 'mars.glb'
-  },
-  {
     id: 'planet-story',
-    name: 'Planeta Story',
-    subtitle: 'El Archivo · Crónicas & Manifiesto',
+    name: 'Introducción',
+    subtitle: 'Bienvenida & Visión del Portafolio',
     domain: 'STORY',
     color: '#D8C39D',
     secondaryColor: '#8C82FF',
     radius: 0.72,
     screenX: 0.4948,
     screenY: 0.4741,
+    verticalScreenX: 0.3912,
+    verticalScreenY: 0.4953,
     hasRings: true,
     ringsRadius: 1.35,
-    description: 'Narrativa cinemática, la travesía del arquitecto creador y el diseño con alma humana.',
-    chapterNumber: 2,
+    description: 'Bienvenida al portafolio espacial de Elvin G. Andrades bajo los pilares de SGX.Showcase y SGX.System.',
+    chapterNumber: 1,
     modelFile: '/models/saturn.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_e1bdc16d3c47453193f9fa07c26d7c96.glb',
-    modelName: 'saturn.glb'
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_968472237ff14ce49099d980a5fb9467.glb'
   },
   {
     id: 'planet-nexus',
-    name: 'Planeta Nexus',
-    subtitle: 'La Bóveda · Proyectos & Obras Insignia',
+    name: 'Juegos',
+    subtitle: 'Experiencias Interactivas & Videojuegos',
     domain: 'NEXUS',
     color: '#4A90E2',
     secondaryColor: '#51E6C4',
     radius: 0.66,
     screenX: 0.7258,
     screenY: 0.3199,
+    verticalScreenX: 0.6894,
+    verticalScreenY: 0.3302,
     isWireframe: false,
-    description: 'Colección de aplicaciones espaciales interactivas, herramientas creativas y gemelos digitales.',
-    chapterNumber: 3,
+    description: 'Mazescape y experiencias interactivas jugables.',
+    chapterNumber: 2,
     modelFile: '/models/earth.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_1bd1dd160e044c68b253c3a864854dcd.glb',
-    modelName: 'earth.glb'
-  },
-  {
-    id: 'planet-matrix',
-    name: 'Planeta Matrix',
-    subtitle: 'El Bastión · Stack Tecnológico & Arcana',
-    domain: 'MATRIX',
-    color: '#41729F',
-    secondaryColor: '#51E6C4',
-    radius: 0.65,
-    screenX: 0.2484,
-    screenY: 0.7093,
-    description: 'Maestría en Three.js, shaders GLSL, arquitecturas full-stack y optimización GPU.',
-    chapterNumber: 4,
-    modelFile: '/models/neptune.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_a4fdaaedd8124afa93ccd77bdcc6f0c8.glb',
-    modelName: 'neptune.glb'
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_04dd2853553440ca9c08d03ef60aa335.glb'
   },
   {
     id: 'planet-beacon',
-    name: 'Planeta Beacon',
-    subtitle: 'El Faro · Enlace & Transmisión',
+    name: 'Galería',
+    subtitle: 'Archivo Visual & Exhibición Espacial',
     domain: 'BEACON',
     color: '#A0A0A0',
     secondaryColor: '#FFFFFF',
     radius: 0.63,
     screenX: 0.2529,
     screenY: 0.3157,
-    description: 'Canal directo de contacto, colaboración profesional y disponibilidad de misiones.',
-    chapterNumber: 5,
+    verticalScreenX: 0.3458,
+    verticalScreenY: 0.2104,
+    description: 'Exhibición visual y canal de exploración creativa.',
+    chapterNumber: 3,
     modelFile: '/models/moon.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_6ac838581067467e921a0510f23a427f.glb',
-    modelName: 'moon.glb'
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_edab7517a8a94eb0a249f502dd4b21f2.glb'
+  },
+  {
+    id: 'planet-matrix',
+    name: 'Biografía',
+    subtitle: 'Arte Digital, Diseño 3D & UI · Spatialgineers',
+    domain: 'MATRIX',
+    color: '#41729F',
+    secondaryColor: '#51E6C4',
+    radius: 0.65,
+    screenX: 0.2529,
+    screenY: 0.6810,
+    verticalScreenX: 0.3505,
+    verticalScreenY: 0.7823,
+    description: 'Diseñador de personajes, texturas y UV para modelos 3D, logos e interfaces de usuario (UI); Initiate en Spatialgineers.',
+    chapterNumber: 4,
+    modelFile: '/models/neptune.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_3852ab5e10ff4120975dd5b5d3a0ef12.glb'
+  },
+  {
+    id: 'planet-spark',
+    name: 'Contactos',
+    subtitle: 'Mensaje Directo & Redes Sociales',
+    domain: 'SPARK',
+    color: '#E06D53',
+    secondaryColor: '#51E6C4',
+    radius: 0.68,
+    screenX: 0.7294,
+    screenY: 0.6810,
+    verticalScreenX: 0.6653,
+    verticalScreenY: 0.6688,
+    description: 'Contacto directo por correo electrónico y seguimiento de proyectos actuales en redes sociales.',
+    chapterNumber: 5,
+    modelFile: '/models/mars.glb',
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_eccac59d52044676884a981e435e7c7d.glb'
   }
 ];
 
-export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModuleProps> = () => {
+const SHARED_LANDSCAPE_MII_GIF_CLASS =
+  'block mx-auto w-auto h-[clamp(96px,calc(100dvh-515px),320px)] [@media(max-height:680px)]:h-[clamp(88px,calc(100dvh-435px),240px)] [@media(max-height:500px)]:h-[clamp(72px,calc(100dvh-335px),170px)] max-w-full object-contain';
+
+export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModuleProps> = ({
+  isVerticalLayout = false,
+  isMobileOnly = false,
+  isDesktopOrTabletLandscape = false,
+  isMobileOrTabletDevice = false,
+  onPlanetSelectionChange
+}) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const planetTabsRef = useRef<HTMLDivElement | null>(null);
+  const planetTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const drawerBodyRef = useRef<HTMLDivElement | null>(null);
 
   // UI States
   const [selectedPlanet, setSelectedPlanet] = useState<CelestialPlanet | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
-  const [transmissionSent, setTransmissionSent] = useState<boolean>(false);
-  const [messageText, setMessageText] = useState<string>('');
-  const [senderEmail, setSenderEmail] = useState<string>('');
+  const [activeGalleryFilter, setActiveGalleryFilter] = useState<GalleryCategoryId>(GalleryCategoryId.ALL);
+  const [activeArtwork, setActiveArtwork] = useState<GalleryArtworkItem | null>(null);
+  const [introGifError, setIntroGifError] = useState<boolean>(false);
+  const [bioGifError, setBioGifError] = useState<boolean>(false);
+  const [bioPhotoError, setBioPhotoError] = useState<boolean>(false);
+  const [gamesCoverError, setGamesCoverError] = useState<boolean>(false);
+
+  // Reset drawer body scroll position to top whenever switching planets
+  useEffect(() => {
+    if (drawerBodyRef.current) {
+      drawerBodyRef.current.scrollTop = 0;
+    }
+  }, [selectedPlanet?.id]);
+
+  // Reveal active planet tab inside the horizontal tab scroller without scrolling outer containers
+  useEffect(() => {
+    if (!selectedPlanet) return;
+    const container = planetTabsRef.current;
+    const activeTab = planetTabRefs.current.get(selectedPlanet.id);
+    if (!container || !activeTab) return;
+    if (container.scrollWidth <= container.clientWidth) return;
+
+    const tabLeft = activeTab.offsetLeft;
+    const tabRight = tabLeft + activeTab.offsetWidth;
+    const viewLeft = container.scrollLeft;
+    const viewRight = viewLeft + container.clientWidth;
+    const edgePadding = 12;
+
+    if (tabLeft - edgePadding < viewLeft) {
+      container.scrollTo({ left: Math.max(0, tabLeft - edgePadding), behavior: 'smooth' });
+    } else if (tabRight + edgePadding > viewRight) {
+      container.scrollTo({
+        left: Math.min(
+          container.scrollWidth - container.clientWidth,
+          tabRight - container.clientWidth + edgePadding
+        ),
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedPlanet, isMobileOrTabletDevice]);
+
+  const handlePlanetTabsWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.scrollWidth <= container.clientWidth) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      container.scrollLeft += e.deltaY;
+    }
+  }, []);
+
+  // Notify parent overlay whenever planet selection changes (for mobile overlay shift)
+  useEffect(() => {
+    onPlanetSelectionChange?.(selectedPlanet !== null);
+  }, [selectedPlanet, onPlanetSelectionChange]);
+
+  useEffect(() => {
+    return () => {
+      onPlanetSelectionChange?.(false);
+    };
+  }, [onPlanetSelectionChange]);
 
   // References to keep mutable 3D state out of re-render closures
   const stateRef = useRef({
@@ -153,24 +246,6 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     gravityWaveActive: false
   });
 
-  // Emit probe signal sound (Spark mechanic)
-  const handleLaunchProbe = useCallback(() => {
-    soundEngine.playProbeLaunchSound();
-  }, []);
-
-  // Trigger gravity pulse (Spark mechanic)
-  const handleGravityPulse = useCallback(() => {
-    soundEngine.playPulseSound();
-    if (stateRef.current.gravityWave && stateRef.current.selectedPlanetId) {
-      const selectedPos = stateRef.current.planetTargetPositions.get(stateRef.current.selectedPlanetId);
-      if (selectedPos) {
-        stateRef.current.gravityWave.position.copy(selectedPos);
-      }
-    }
-    stateRef.current.gravityWaveActive = true;
-    stateRef.current.gravityWaveRadius = 0.5;
-  }, []);
-
   // Select planet
   const handleSelectPlanet = useCallback((planet: CelestialPlanet) => {
     setSelectedPlanet(planet);
@@ -178,17 +253,24 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     soundEngine.playPlanetResonance(planet.chapterNumber);
   }, []);
 
-  // Close selected planet on Escape
+  // Close artwork viewer first on Escape, otherwise close selected planet
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Escape' && stateRef.current.selectedPlanetId) {
+      if (e.code !== 'Escape') return;
+      if (activeArtwork) {
+        e.stopImmediatePropagation();
+        setActiveArtwork(null);
+        soundEngine.playClickSound();
+        return;
+      }
+      if (stateRef.current.selectedPlanetId) {
         setSelectedPlanet(null);
         stateRef.current.selectedPlanetId = null;
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [activeArtwork]);
 
   // Main Three.js Scene Setup & Loop (PBR, RoomEnvironment, Zero-GC, 60 FPS)
   useEffect(() => {
@@ -293,16 +375,17 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     try {
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
       scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.environmentIntensity = 0.5;
       pmremGenerator.dispose();
     } catch (envErr) {
       console.warn('PMREM environment fallback active:', envErr);
     }
 
-    // 5. Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0x8fa8ff, 0.38);
+    // 5. Studio Lighting Rig (reduced by half for softer, non-overblown planet model brightness)
+    const ambientLight = new THREE.AmbientLight(0x8fa8ff, 0.19);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xdef8ff, 1.85);
+    const keyLight = new THREE.DirectionalLight(0xdef8ff, 0.925);
     keyLight.position.set(4, 7, 5);
     keyLight.castShadow = !isSoftwareGl;
     keyLight.shadow.mapSize.width = 1024;
@@ -314,11 +397,11 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    // Cool fill & rim lights in #51E6C4 and #5E53CC
-    const hemiLight = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.72);
+    // Cool fill & rim lights in #51E6C4 and #5E53CC (reduced by half)
+    const hemiLight = new THREE.HemisphereLight(0x51E6C4, 0x5E53CC, 0.36);
     scene.add(hemiLight);
 
-    const rimLight = new THREE.DirectionalLight(0x5E53CC, 1.35);
+    const rimLight = new THREE.DirectionalLight(0x5E53CC, 0.675);
     rimLight.position.set(-5, 3, -4);
     scene.add(rimLight);
 
@@ -487,29 +570,83 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     const _camSpacePos = new THREE.Vector3();
 
     const updateStaticPlanetLayout = () => {
-      const safeAspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : 16 / 9;
+      const { width: vw, height: vh } = getSafeDimensions();
+      const safeAspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : vw / vh;
       homeCamera.aspect = safeAspect;
       homeCamera.updateProjectionMatrix();
       homeCamera.updateMatrixWorld(true);
 
       const halfHeight = PLANE_DEPTH * Math.tan(THREE.MathUtils.degToRad(homeCamera.fov * 0.5));
       const halfWidth = halfHeight * safeAspect;
-      const responsiveScale = THREE.MathUtils.clamp(safeAspect / 1.6, 0.65, 1.0);
+      const isVerticalMode = isMobileOrTabletViewport();
 
-      planetMeshesList.forEach((item) => {
-        const ndcX = item.planet.screenX * 2 - 1;
-        const ndcY = 1 - item.planet.screenY * 2;
+      if (isVerticalMode) {
+        // Mobile & Tablet Portrait: 1920x1920 vertical overlay is anchored at left:0, top:0 with height = vh (no stretching).
+        // Its left 1080x1920 region matches "Posiciones de Planetas Vertical.png" (9:16 portrait CRT).
+        const minFullVerticalCrtAspect = 960 / 1920;
+        const refFrameWidth =
+          vw >= vh * minFullVerticalCrtAspect ? vh * (1080 / 1920) : vw * (1080 / 960);
+        const responsiveScale = THREE.MathUtils.clamp(refFrameWidth / vh, 0.44, 0.5625);
 
-        _camSpacePos.set(ndcX * halfWidth, ndcY * halfHeight, -PLANE_DEPTH);
-        _camSpacePos.applyMatrix4(homeCamera.matrixWorld);
+        planetMeshesList.forEach((item) => {
+          const screenFracX = (item.planet.verticalScreenX * refFrameWidth) / vw;
+          const screenFracY = item.planet.verticalScreenY;
+          const ndcX = screenFracX * 2 - 1;
+          const ndcY = 1 - screenFracY * 2;
 
-        item.group.position.copy(_camSpacePos);
-        item.baseScale = responsiveScale;
-        if (!Number.isFinite(item.group.scale.x) || item.group.scale.x <= 0.01) {
-          item.group.scale.setScalar(responsiveScale);
-        }
-        stateRef.current.planetTargetPositions.set(item.planet.id, _camSpacePos.clone());
-      });
+          _camSpacePos.set(ndcX * halfWidth, ndcY * halfHeight, -PLANE_DEPTH);
+          _camSpacePos.applyMatrix4(homeCamera.matrixWorld);
+
+          item.group.position.copy(_camSpacePos);
+          item.baseScale = responsiveScale;
+          const activeFactor = stateRef.current.selectedPlanetId === item.planet.id ? 1.14 : 1.0;
+          item.group.scale.setScalar(responsiveScale * activeFactor);
+          stateRef.current.planetTargetPositions.set(item.planet.id, _camSpacePos.clone());
+        });
+      } else if (isTabletLandscapeViewport()) {
+        // Tablet Landscape: 2880x1080 overlay renders at height = vh with its 1920x1080 main CRT composition centered at 50vw.
+        const frameWidth = vh * (16 / 9);
+        const frameOffsetX = (vw - frameWidth) * 0.5;
+        const responsiveScale = THREE.MathUtils.clamp((vw / vh) / (16 / 9), 0.84, 1.0);
+
+        planetMeshesList.forEach((item) => {
+          const screenFracX = (frameOffsetX + item.planet.screenX * frameWidth) / vw;
+          const screenFracY = item.planet.screenY;
+          const ndcX = screenFracX * 2 - 1;
+          const ndcY = 1 - screenFracY * 2;
+
+          _camSpacePos.set(ndcX * halfWidth, ndcY * halfHeight, -PLANE_DEPTH);
+          _camSpacePos.applyMatrix4(homeCamera.matrixWorld);
+
+          item.group.position.copy(_camSpacePos);
+          item.baseScale = responsiveScale;
+          const activeFactor = stateRef.current.selectedPlanetId === item.planet.id ? 1.14 : 1.0;
+          item.group.scale.setScalar(responsiveScale * activeFactor);
+          stateRef.current.planetTargetPositions.set(item.planet.id, _camSpacePos.clone());
+        });
+      } else {
+        // Desktop + Mobile Landscape: 2880x1080 overlay is anchored at left:0, top:0 with height = vh (no fit-to-screen stretching).
+        // Its left 1920x1080 region holds the exact CRT window from "Posiciones de Planetas.png".
+        const minFullCrtAspect = 1560 / 1080;
+        const refFrameWidth = vw >= vh * minFullCrtAspect ? vh * (16 / 9) : vw * (1920 / 1560);
+        const responsiveScale = THREE.MathUtils.clamp((refFrameWidth / vh) / (16 / 9), 0.68, 1.0);
+
+        planetMeshesList.forEach((item) => {
+          const screenFracX = (item.planet.screenX * refFrameWidth) / vw;
+          const screenFracY = item.planet.screenY;
+          const ndcX = screenFracX * 2 - 1;
+          const ndcY = 1 - screenFracY * 2;
+
+          _camSpacePos.set(ndcX * halfWidth, ndcY * halfHeight, -PLANE_DEPTH);
+          _camSpacePos.applyMatrix4(homeCamera.matrixWorld);
+
+          item.group.position.copy(_camSpacePos);
+          item.baseScale = responsiveScale;
+          const activeFactor = stateRef.current.selectedPlanetId === item.planet.id ? 1.14 : 1.0;
+          item.group.scale.setScalar(responsiveScale * activeFactor);
+          stateRef.current.planetTargetPositions.set(item.planet.id, _camSpacePos.clone());
+        });
+      }
     };
 
     updateStaticPlanetLayout();
@@ -529,20 +666,81 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     scene.add(gravityWave);
     stateRef.current.gravityWave = gravityWave;
 
-    // 9. Mouse / Touch Pointer Tracking & Raycasting
-    const onPointerMove = (e: MouseEvent | TouchEvent) => {
-      const rect = container.getBoundingClientRect();
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    // 9. Mouse / Touch Pointer Tracking & Raycasting (bounded to the transparent CRT window of the active left-aligned overlay)
+    const isPointerInsideCrtGlass = (
+      localX: number,
+      localY: number,
+      rectWidth: number,
+      rectHeight: number
+    ) => {
+      if (isMobileOrTabletViewport()) {
+        const scale = Math.max(rectHeight, 1) / 1920;
+        const shiftPx =
+          isMobileOnlyViewport() && stateRef.current.selectedPlanetId !== null
+            ? MOBILE_SELECTED_OVERLAY_SHIFT_PNG * scale
+            : 0;
+        const inCharacterSilhouette =
+          localX >= 468 * scale - shiftPx &&
+          localX <= 612 * scale - shiftPx &&
+          localY >= 1656 * scale;
+        return (
+          !inCharacterSilhouette &&
+          localX >= Math.max(0, 141 * scale - shiftPx) &&
+          localX <= Math.min(938 * scale - shiftPx, rectWidth) &&
+          localY >= 165 * scale &&
+          localY <= 1754 * scale
+        );
+      }
 
-      stateRef.current.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      stateRef.current.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      const scale = Math.max(rectHeight, 1) / 1080;
+      const overlayOffsetX = isTabletLandscapeViewport() ? rectWidth * 0.5 - 960 * scale : 0;
+      const inCharacterSilhouette =
+        localX >= 888 * scale + overlayOffsetX &&
+        localX <= 1031 * scale + overlayOffsetX &&
+        localY >= 816 * scale;
+      return (
+        !inCharacterSilhouette &&
+        localX >= Math.max(0, 165 * scale + overlayOffsetX) &&
+        localX <= Math.min(rectWidth, 1754 * scale + overlayOffsetX) &&
+        localY >= 129 * scale &&
+        localY <= 926 * scale
+      );
     };
 
-    const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      onPointerMove(e);
-      stateRef.current.raycaster.setFromCamera(stateRef.current.pointer, camera);
+    let pointerInGlass = false;
 
+    const onPointerMove = (e: PointerEvent | MouseEvent | TouchEvent) => {
+      const rect = container.getBoundingClientRect();
+      let clientX: number;
+      let clientY: number;
+      if ('touches' in e) {
+        if (e.touches.length === 0) return;
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+
+      pointerInGlass = isPointerInsideCrtGlass(localX, localY, rect.width, rect.height);
+      stateRef.current.pointer.x = (localX / Math.max(rect.width, 1)) * 2 - 1;
+      stateRef.current.pointer.y = -(localY / Math.max(rect.height, 1)) * 2 + 1;
+    };
+
+    const onPointerDown = (e: PointerEvent | MouseEvent | TouchEvent) => {
+      onPointerMove(e);
+
+      if (!pointerInGlass) {
+        if (stateRef.current.selectedPlanetId !== null) {
+          setSelectedPlanet(null);
+          stateRef.current.selectedPlanetId = null;
+        }
+        return;
+      }
+
+      stateRef.current.raycaster.setFromCamera(stateRef.current.pointer, camera);
       const intersects = stateRef.current.raycaster.intersectObjects(hitTargets, false);
 
       if (intersects.length > 0) {
@@ -557,7 +755,7 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
       }
     };
 
-    container.addEventListener('mousemove', onPointerMove);
+    container.addEventListener('pointermove', onPointerMove);
     container.addEventListener('pointerdown', onPointerDown);
 
     // 10. High-Performance 60 FPS Render Loop (Zero GC, Static Planet Positions + Smooth Zoom to rotation_axis)
@@ -602,9 +800,9 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
       planetMeshesList.forEach((item) => {
         const { group, rotAxis, planet, baseScale } = item;
 
-        // Continuous dextrorso (clockwise) spin around the model's local rotation_axis
+        // Continuous dextrorso (clockwise) spin: 40 seconds per full revolution (2 * PI / 40 rad/s)
         if (rotAxis) {
-          rotAxis.rotateY(-0.65 * delta);
+          rotAxis.rotateY(-((Math.PI * 2) / 40) * delta);
         }
 
         // Tactile scale response when hovered or selected while keeping static coordinates
@@ -628,53 +826,132 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
         selectedItem.group.updateMatrixWorld(true);
         selectedItem.rotAxis.getWorldPosition(_axisWorldPos);
 
-        const vw = Math.max(container.clientWidth || window.innerWidth || 1280, 1);
-        const aspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : 16 / 9;
+        const { width: vw, height: vh } = getSafeDimensions();
+        const aspect = Number.isFinite(camera.aspect) && camera.aspect > 0 ? camera.aspect : vw / vh;
         const activeScale = (Number.isFinite(selectedItem.baseScale) ? selectedItem.baseScale : 1.0) * 1.14;
         const sphereWorldRadius = selectedItem.planet.radius * activeScale;
-        const vertWorldRadius = sphereWorldRadius * 1.08;
+        const vertWorldRadius = sphereWorldRadius * 1.1;
         const horizWorldRadius = selectedItem.planet.hasRings
-          ? sphereWorldRadius * 1.86
-          : sphereWorldRadius * 1.05;
+          ? sphereWorldRadius * 1.58
+          : sphereWorldRadius * 1.08;
 
+        const isVerticalMode = isMobileOrTabletViewport();
         let targetScreenX: number;
         let targetScreenY: number;
         let maxVertScreenRadius: number;
         let maxHorizScreenRadius: number;
+        let maxZoomDist = 7.0;
 
-        if (vw >= 640) {
-          // Frame cleanly in the unobstructed CRT glass left of the open right-side panel,
-          // guaranteeing the top of the planet stays well below the top CRT bezel (~14.5%)
-          const leftSafe = 0.11;
-          const drawerRightPx = 24;
-          const drawerWidthPx = Math.min(390, vw * 0.44);
-          const drawerLeftFrac = Math.min(0.89, 1.0 - (drawerRightPx + drawerWidthPx) / vw);
-          const rightSafe = Math.max(0.36, drawerLeftFrac - 0.025);
+        if (isVerticalMode) {
+          // Mobile & Tablet Portrait (1920x1920 vertical overlay anchored at left:0, top:0 with height = vh).
+          // CRT glass spans x = [141..938] * (vh/1920) and y = [165..1754] * (vh/1920).
+          const overlayScale = vh / 1920;
 
-          targetScreenX = THREE.MathUtils.clamp((leftSafe + rightSafe) * 0.5, 0.28, 0.41);
-          targetScreenY = 0.51;
-          maxVertScreenRadius = 0.27; // Top edge >= 0.24 (well inside CRT overlay top bezel at ~0.145)
-          maxHorizScreenRadius = Math.max(
-            0.13,
-            Math.min(targetScreenX - leftSafe, rightSafe - targetScreenX) * 0.92
-          );
+          if (!isMobileOnlyViewport()) {
+            // Tablet Portrait: extended right wall hosts the planet panel; move camera right (+_homeRight)
+            // so the zoomed planet frames on the left side of the CRT glass with its top clearly visible.
+            const crtSafeLeftPx = 170 * overlayScale;
+            const crtSafeRightPx = Math.min(905 * overlayScale, vw * 0.88);
+            const drawerRightPx = vw >= 1024 ? 32 : 24;
+            const drawerWidthPx = Math.min(390, vw * 0.44);
+            const panelSafeLeftPx = vw - drawerRightPx - drawerWidthPx - 20;
+
+            const availableRightPx = Math.max(
+              crtSafeLeftPx + 120,
+              Math.min(crtSafeRightPx, panelSafeLeftPx)
+            );
+            const leftSafe = THREE.MathUtils.clamp(crtSafeLeftPx / vw, 0.08, 0.24);
+            const rightSafe = THREE.MathUtils.clamp(availableRightPx / vw, leftSafe + 0.14, 0.68);
+
+            targetScreenX = THREE.MathUtils.clamp(
+              THREE.MathUtils.lerp(leftSafe, rightSafe, 0.46),
+              0.22,
+              0.36
+            );
+            targetScreenY = 0.46;
+            maxVertScreenRadius = 0.18; // Top edge >= 0.28 (clearly visible below top CRT bezel at ~0.086)
+            maxHorizScreenRadius = Math.max(
+              0.15,
+              Math.min(targetScreenX - leftSafe, rightSafe - targetScreenX) * 0.9
+            );
+            maxZoomDist = 5.8;
+          } else {
+            // Mobile Portrait: vertical overlay shifts left by MOBILE_SELECTED_OVERLAY_SHIFT_PNG * (vh/1920),
+            // giving the right-aligned panel (~61vw) extra room while shifting the camera right (+_homeRight)
+            // so the corresponding planet and its top edge remain clearly visible in the left CRT window.
+            const shiftPx = MOBILE_SELECTED_OVERLAY_SHIFT_PNG * overlayScale;
+            const crtSafeLeftPx = Math.max(6, 141 * overlayScale - shiftPx + 3);
+            const drawerRightPx = 10; // right-2.5
+            const drawerWidthPx = Math.min(vw - 104, vw * 0.61);
+            const panelSafeLeftPx = vw - drawerRightPx - drawerWidthPx - 4;
+
+            const leftSafe = THREE.MathUtils.clamp(crtSafeLeftPx / vw, 0.02, 0.12);
+            const rightSafe = THREE.MathUtils.clamp(panelSafeLeftPx / vw, leftSafe + 0.18, 0.42);
+
+            targetScreenX = THREE.MathUtils.clamp(
+              THREE.MathUtils.lerp(leftSafe, rightSafe, 0.5),
+              0.15,
+              0.25
+            );
+            targetScreenY = 0.45;
+            maxVertScreenRadius = 0.16; // Top edge >= 0.29 (well below top CRT bezel at ~0.086)
+            maxHorizScreenRadius = Math.max(
+              0.14,
+              Math.min(targetScreenX - leftSafe, rightSafe - targetScreenX) * 1.06
+            );
+            maxZoomDist = 6.5;
+          }
         } else {
-          targetScreenX = 0.34;
-          targetScreenY = 0.48;
-          maxVertScreenRadius = 0.22;
-          maxHorizScreenRadius = 0.22;
+          // Desktop + Mobile/Tablet Landscape: 2880x1080 overlay renders with height = vh (scale = vh / 1080),
+          // left-aligned on Desktop & Mobile Landscape and horizontally centered at 50vw on Tablet Landscape.
+          const overlayScale = vh / 1080;
+          const overlayOffsetX = isTabletLandscapeViewport() ? vw * 0.5 - 960 * overlayScale : 0;
+          const crtSafeLeftPx = Math.max(32, 205 * overlayScale + overlayOffsetX);
+          const crtSafeRightPx = Math.min(1700 * overlayScale + overlayOffsetX, vw * 0.88);
+
+          const drawerRightPx = vw >= 1024 ? 32 : vw >= 640 ? 24 : 16;
+          const drawerWidthPx = Math.min(390, vw * 0.44);
+          const panelGapPx = Math.max(12, Math.round(28 * Math.min(1, vw / 1280)));
+          const panelSafeLeftPx = vw - drawerRightPx - drawerWidthPx - panelGapPx;
+
+          const minWindowSpanPx = 180 * Math.min(1, overlayScale * 1.4);
+          const availableRightPx = Math.max(
+            crtSafeLeftPx + minWindowSpanPx,
+            Math.min(crtSafeRightPx, panelSafeLeftPx)
+          );
+          const leftSafe = THREE.MathUtils.clamp(crtSafeLeftPx / vw, 0.06, 0.28);
+          const rightSafe = THREE.MathUtils.clamp(availableRightPx / vw, leftSafe + 0.16, 0.78);
+
+          // Move camera to the right (+_homeRight) so the zoomed planet frames on the left-center
+          // of the unobstructed CRT window, leaving space on the right for the panel that appears.
+          targetScreenX = THREE.MathUtils.clamp(
+            THREE.MathUtils.lerp(leftSafe, rightSafe, 0.43),
+            0.22,
+            0.39
+          );
+          targetScreenY = 0.49;
+          maxVertScreenRadius = 0.25; // Top edge >= 0.24 (clearly visible below top CRT bezel at ~0.12)
+          maxHorizScreenRadius = Math.max(
+            0.14,
+            Math.min(targetScreenX - leftSafe, rightSafe - targetScreenX) * 0.9
+          );
+          maxZoomDist = 7.0;
         }
 
         const minHalfHVert = vertWorldRadius / (2 * maxVertScreenRadius);
         const minHalfHHoriz = horizWorldRadius / (2 * maxHorizScreenRadius * aspect);
-        const zoomDist = Math.max(minHalfHVert / tanHalfFov, minHalfHHoriz / tanHalfFov, 2.5);
+        const zoomDist = Math.min(
+          Math.max(minHalfHVert / tanHalfFov, minHalfHHoriz / tanHalfFov, 2.5),
+          maxZoomDist
+        );
 
         const halfH = zoomDist * tanHalfFov;
         const halfW = halfH * aspect;
         const ndcX = targetScreenX * 2 - 1;
         const ndcY = 1 - targetScreenY * 2;
 
-        // Shift camera ray parallel to home basis so 'rotation_axis' projects cleanly to (targetScreenX, targetScreenY)
+        // Shift camera + lookTarget to the right (+_homeRight since ndcX < 0) parallel to home basis
+        // so 'rotation_axis' projects to (targetScreenX, targetScreenY) with top of planet visible
         _desiredLookTarget
           .copy(_axisWorldPos)
           .addScaledVector(_homeRight, -ndcX * halfW)
@@ -707,8 +984,8 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
       camera.position.copy(currentCamPos);
       camera.lookAt(currentLookTarget);
 
-      // Raycast pointer hover check
-      if (stateRef.current.pointer.x > -2) {
+      // Raycast pointer hover check (only through transparent CRT glass)
+      if (pointerInGlass && stateRef.current.pointer.x > -2) {
         stateRef.current.raycaster.setFromCamera(stateRef.current.pointer, camera);
         const intersects = stateRef.current.raycaster.intersectObjects(hitTargets, false);
 
@@ -722,6 +999,9 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
           stateRef.current.hoveredPlanetId = null;
           setIsHovered(false);
         }
+      } else if (stateRef.current.hoveredPlanetId !== null) {
+        stateRef.current.hoveredPlanetId = null;
+        setIsHovered(false);
       }
 
       // Gravity shockwave expansion (Spark mechanic)
@@ -752,7 +1032,8 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
 
     renderLoop();
 
-    // Resize Handler (keeps static planet positions aligned with the CRT overlay across aspect ratios)
+    // Resize & Orientation Handler (keeps static planet positions aligned with the active CRT overlay)
+    let orientationRafId = 0;
     const handleResize = () => {
       if (!container || isDisposed) return;
       const rawW = container.clientWidth || window.innerWidth;
@@ -765,21 +1046,38 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
       renderer.setSize(w, h, true);
       updateStaticPlanetLayout();
     };
+    const handleOrientationChange = () => {
+      handleResize();
+      cancelAnimationFrame(orientationRafId);
+      orientationRafId = requestAnimationFrame(handleResize);
+    };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    const viewportMediaQuery = window.matchMedia(VERTICAL_VIEWPORT_MEDIA_QUERY);
+    const mobileMediaQuery = window.matchMedia(MOBILE_ONLY_MEDIA_QUERY);
+    const tabletLandscapeMediaQuery = window.matchMedia(TABLET_LANDSCAPE_MEDIA_QUERY);
+    viewportMediaQuery.addEventListener('change', handleResize);
+    mobileMediaQuery.addEventListener('change', handleResize);
+    tabletLandscapeMediaQuery.addEventListener('change', handleResize);
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
 
     // Cleanup (Capítulo II.4 del Grimorio SGX: Desechar geometrías y texturas)
     return () => {
       isDisposed = true;
+      cancelAnimationFrame(orientationRafId);
       if (isTimerFrame) {
         clearTimeout(frameId);
       } else {
         cancelAnimationFrame(frameId);
       }
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      viewportMediaQuery.removeEventListener('change', handleResize);
+      mobileMediaQuery.removeEventListener('change', handleResize);
+      tabletLandscapeMediaQuery.removeEventListener('change', handleResize);
       resizeObserver.disconnect();
-      container.removeEventListener('mousemove', onPointerMove);
+      container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
 
@@ -800,18 +1098,19 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
     };
   }, [handleSelectPlanet]);
 
-  // Handle transmission send
-  const handleSendTransmission = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageText.trim()) return;
-    soundEngine.playPulseSound();
-    setTransmissionSent(true);
-    setTimeout(() => {
-      setMessageText('');
-      setSenderEmail('');
-      setTransmissionSent(false);
-    }, 4500);
-  };
+  const handleOpenArtwork = useCallback((artwork: GalleryArtworkItem) => {
+    setActiveArtwork(artwork);
+    soundEngine.playClickSound();
+  }, []);
+
+  const handleCloseArtwork = useCallback(() => {
+    setActiveArtwork(null);
+    soundEngine.playClickSound();
+  }, []);
+
+  const visibleGalleryCategories = GALLERY_CATEGORIES.filter(
+    (category) => activeGalleryFilter === GalleryCategoryId.ALL || category.id === activeGalleryFilter
+  );
 
   return (
     <div className="relative w-full h-full min-h-full text-slate-100 select-none">
@@ -821,29 +1120,29 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
         className={`fixed inset-0 w-screen h-screen z-10 overflow-hidden ${isHovered ? 'cursor-pointer' : 'cursor-crosshair'}`}
       />
 
-      {/* Portfolio Story Drawer / Modal for Selected Planet (z-50: above the z-30 CRT overlay on the right side) */}
+      {/* Portfolio Story Drawer / Modal for Selected Planet (z-50: above the z-30 overlay in the expanded right wall area) */}
       {selectedPlanet && (
-        <div className="fixed top-4 bottom-4 right-4 sm:top-6 sm:bottom-6 sm:right-6 w-[390px] max-w-[calc(100vw-2rem)] sm:max-w-[44vw] z-50 bg-[#0e1736]/95 border border-[#51E6C4]/45 rounded-2xl shadow-2xl flex flex-col overflow-hidden select-none">
+        <div
+          className={`fixed z-50 bg-[#0e1736]/95 border border-[#51E6C4]/45 rounded-2xl shadow-2xl flex flex-col overflow-hidden select-none ${
+            isVerticalLayout && isMobileOnly
+              ? selectedPlanet.domain === 'SPARK'
+                ? 'top-1/2 -translate-y-1/2 right-2.5 w-[61vw] max-w-[calc(100vw-6.5rem)] h-auto max-h-[calc(100dvh-1.5rem)]'
+                : 'top-3 bottom-3 right-2.5 w-[61vw] max-w-[calc(100vw-6.5rem)]'
+              : selectedPlanet.domain === 'SPARK'
+                ? 'top-1/2 -translate-y-1/2 right-4 sm:right-6 lg:right-8 w-[390px] max-w-[44vw] h-auto max-h-[calc(100dvh-3rem)] [@media(max-height:500px)]:max-h-[calc(100dvh-1.25rem)]'
+                : 'top-6 bottom-6 [@media(max-height:500px)]:top-2.5 [@media(max-height:500px)]:bottom-2.5 right-4 sm:right-6 lg:right-8 w-[390px] max-w-[44vw]'
+          }`}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-[#0A1128]/90">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-[#51E6C4] shadow-[0_0_10px_#51E6C4]" />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-white font-heading">
-                    {selectedPlanet.name}
-                  </h3>
-                  <span className="text-[10px] font-mono-telemetry px-2 py-0.5 rounded bg-[#5E53CC]/30 border border-[#5E53CC]/50 text-[#b8b1ff]">
-                    {selectedPlanet.modelName}
-                  </span>
-                </div>
-                <p className="text-xs text-[#51E6C4] font-mono-telemetry flex items-center gap-1.5 mt-0.5">
-                  <span>{selectedPlanet.subtitle}</span>
-                  <span className="text-[10px] text-slate-400">·</span>
-                  <span className="text-[10px] text-emerald-400 font-mono-telemetry flex items-center gap-1">
-                    <RotateCw className="w-2.5 h-2.5 animate-spin [animation-duration:6s]" />
-                    eje rotation_axis (Dextrorso)
-                  </span>
+          <div className="shrink-0 flex items-center justify-between gap-2 p-3 sm:p-4 [@media(max-height:500px)]:p-2.5 border-b border-slate-800 bg-[#0A1128]/90">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="w-3 h-3 shrink-0 rounded-full bg-[#51E6C4] shadow-[0_0_10px_#51E6C4]" />
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-base font-bold text-white font-heading truncate">
+                  {selectedPlanet.name}
+                </h3>
+                <p className="text-[11px] sm:text-xs text-[#51E6C4] font-mono-telemetry truncate mt-0.5">
+                  {selectedPlanet.subtitle}
                 </p>
               </div>
             </div>
@@ -853,317 +1152,411 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                 stateRef.current.selectedPlanetId = null;
                 soundEngine.playClickSound();
               }}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-colors"
+              className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Chapter Navigation Tabs */}
-          <div className="flex border-b border-slate-800/80 bg-[#141f45]/50 px-3 overflow-x-auto">
+          <div
+            ref={planetTabsRef}
+            onWheel={handlePlanetTabsWheel}
+            className={
+              isMobileOrTabletDevice
+                ? 'shrink-0 flex items-center justify-start gap-2 border-b border-slate-800/80 bg-[#141f45]/50 px-3 overflow-x-auto touch-pan-x overscroll-x-contain'
+                : 'shrink-0 flex items-center justify-between gap-0.5 border-b border-slate-800/80 bg-[#141f45]/50 px-2.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+            }
+          >
             {CELESTIAL_PLANETS.map((planet) => (
               <button
                 key={planet.id}
+                ref={(el) => {
+                  if (el) {
+                    planetTabRefs.current.set(planet.id, el);
+                  } else {
+                    planetTabRefs.current.delete(planet.id);
+                  }
+                }}
                 onClick={() => handleSelectPlanet(planet)}
-                className={`py-2 px-3 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
+                className={`shrink-0 whitespace-nowrap border-b-2 font-medium transition-all ${
+                  isMobileOrTabletDevice
+                    ? 'py-2.5 [@media(max-height:500px)]:py-1.5 px-3 text-xs'
+                    : 'py-2 px-2 text-xs'
+                } ${
                   selectedPlanet.id === planet.id
                     ? 'border-[#51E6C4] text-[#51E6C4] font-bold'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Cap. {planet.chapterNumber}
+                {planet.name}
               </button>
             ))}
           </div>
 
           {/* Drawer Body (Scrollytelling & Portfolio Content) */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm text-slate-300 leading-relaxed">
-            {/* CHAPTER 1: SPARK */}
+          <div
+            ref={drawerBodyRef}
+            className={
+              selectedPlanet.domain === 'SPARK'
+                ? 'min-h-0 overflow-y-auto p-4 sm:p-5 [@media(max-height:500px)]:p-3.5 text-sm text-slate-200 leading-relaxed'
+                : selectedPlanet.domain === 'STORY' && isDesktopOrTabletLandscape
+                  ? 'flex-1 min-h-0 flex flex-col overflow-hidden [@media(max-height:380px)]:overflow-y-auto px-5 py-4 [@media(max-height:680px)]:p-4 [@media(max-height:500px)]:p-3.5 text-sm text-slate-300 leading-relaxed'
+                  : 'flex-1 overflow-y-auto p-3.5 sm:p-6 [@media(max-height:500px)]:p-3.5 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-3.5 text-sm text-slate-300 leading-relaxed'
+            }
+          >
+            {/* CONTACTOS (formerly SPARK) */}
             {selectedPlanet.domain === 'SPARK' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-[#51E6C4]/10 border-l-4 border-[#51E6C4] p-4 rounded-r-lg">
-                  <h4 className="text-xs font-bold text-[#51E6C4] font-heading tracking-wider uppercase mb-1">
-                    Capítulo I: La Chispa Mecánica (SGX.Spark)
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    "La gravedad y la cinemática no son restricciones matemáticas; son el pulso que convierte una pantalla pasiva en una extensión del tacto humano."
+              <div className="space-y-4 [@media(max-height:500px)]:space-y-3 animate-in fade-in duration-200 select-text">
+                <div className="space-y-2 text-xs sm:text-sm text-slate-200 leading-relaxed">
+                  <p>
+                    ¿Quieres apoyo para tu proyecto? ¿Tienes preguntas? ¿Quieres seguirme en redes sociales?
+                  </p>
+                  <p>
+                    Envía un mensaje o chequea como voy en proyectos actuales. ¡Espero verte pronto!
                   </p>
                 </div>
 
-                <div>
-                  <h5 className="text-sm font-bold text-white mb-2">Filosofía de Fricción Cero</h5>
-                  <p className="text-xs text-slate-300 mb-3">
-                    En este portafolio, cada interacción está calculada con bucles a 60 FPS garantizados vía <code className="text-[#51E6C4] bg-slate-900 px-1 py-0.5 rounded">requestAnimationFrame</code>, contención estricta de inputs de teclado/mouse y gestión de memoria GPU con <code className="text-[#51E6C4] bg-slate-900 px-1 py-0.5 rounded">.dispose()</code> para erradicar cualquier fuga de memoria.
-                  </p>
-                </div>
-
-                {/* Interactive Kinetic Gravity Simulator Playground */}
-                <div className="bg-[#141f45]/70 border border-[#51E6C4]/30 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white font-heading">
-                      Micro-Simulador Gravitatorio
-                    </span>
-                    <span className="text-[10px] font-mono-telemetry text-[#51E6C4]">
-                      60 FPS LIVE
-                    </span>
+                <div className="border-t border-slate-800/80 pt-3.5 [@media(max-height:500px)]:pt-2.5 space-y-3.5 [@media(max-height:500px)]:space-y-2.5">
+                  <div className="space-y-0.5">
+                    <div className="text-xs sm:text-[13px] font-semibold text-white">
+                      Gmail:
+                    </div>
+                    <p className="break-all text-xs sm:text-sm text-slate-200">
+                      elvingandrades@gmail.com
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Interactúa con el campo de gravedad pulsando los comandos o lanzando una sonda física al viewport:
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleLaunchProbe}
-                      className="flex-1 py-2 text-xs font-bold rounded-lg bg-[#51E6C4] text-[#0A1128] hover:bg-[#51E6C4]/90 transition-all text-center"
-                    >
-                      Emitir Pulso de Sonda
-                    </button>
-                    <button
-                      onClick={handleGravityPulse}
-                      className="flex-1 py-2 text-xs font-bold rounded-lg bg-[#5E53CC] text-white hover:bg-[#5E53CC]/90 transition-all text-center"
-                    >
-                      Onda Gravitacional
-                    </button>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <h5 className="text-sm font-bold text-white">Capacidades del Motor Spark</h5>
-                  <ul className="text-xs space-y-1.5 list-disc list-inside text-slate-300">
-                    <li>Detección de colisiones OBB y esferas continuas sin túnel cuántico.</li>
-                    <li>Sintetizador Web Audio sin latencia de red (cero archivos .mp3/wav externos).</li>
-                    <li>Física exponencial suave con amortiguamiento <code className="text-[#51E6C4]">damp</code>.</li>
-                  </ul>
+                  <div className="space-y-1.5">
+                    <div className="text-xs sm:text-[13px] font-semibold text-white">
+                      Instagram:
+                    </div>
+                    <a
+                      href="https://www.instagram.com/elvinga.sgx"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => soundEngine.playClickSound()}
+                      className="inline-flex items-center justify-center max-w-full px-4 py-2 rounded-lg bg-[#51E6C4] text-[#0A1128] text-xs sm:text-sm font-bold hover:bg-[#6ef0d2] active:scale-[0.98] transition-all shadow-sm select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1736]"
+                    >
+                      @elvinga.sgx
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* CHAPTER 2: STORY */}
+            {/* INTRODUCCIÓN (formerly STORY) */}
             {selectedPlanet.domain === 'STORY' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-[#5E53CC]/15 border-l-4 border-[#5E53CC] p-4 rounded-r-lg">
-                  <h4 className="text-xs font-bold text-[#b8b1ff] font-heading tracking-wider uppercase mb-1">
-                    Capítulo II: Las Crónicas del Viajero (SGX.Story)
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    "Un portafolio no es una lista de enlaces; es el diario de navegación de un ingeniero que aprendió a construir mundos donde la ciencia ficción se siente como el hogar."
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <h5 className="text-sm font-bold text-white">El Viaje del Creador</h5>
-                  <p className="text-xs text-slate-300">
-                    Formado en la intersección de la arquitectura espacial, el diseño algorítmico y los sistemas gráficos en tiempo real. Este observador en tercera persona representa la mirada contemplativa: el creador que no compite con el espectador, sino que contempla junto a él la inmensidad del código vivo.
-                  </p>
-                  <p className="text-xs text-slate-300">
-                    Bajo el <strong>Grimorio V2026.5</strong>, cada componente respeta la paz visual: fondo azul profundo <span className="text-[#51E6C4] font-mono-telemetry">#0A1128</span>, acentos turquesa y morado equilibrados, y ausencia total de ruido parpadeante o distracciones innecesarias.
-                  </p>
-                </div>
-
-                <div className="bg-[#141f45]/70 border border-[#5E53CC]/40 rounded-xl p-4 space-y-2">
-                  <h6 className="text-xs font-bold text-[#b8b1ff] font-heading">
-                    Manifiesto de Arquitectura Espacial
-                  </h6>
-                  <p className="text-xs text-slate-300">
-                    1. Fricción cero en el navegador: todo carga en menos de 1 segundo.<br/>
-                    2. Belleza matemática con geometrías PBR limpias.<br/>
-                    3. Integración orgánica de música procedural y sonido cinemático.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* CHAPTER 3: NEXUS (SHOWCASE / PROJECTS) */}
-            {selectedPlanet.domain === 'NEXUS' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-[#51E6C4]/10 border-l-4 border-[#51E6C4] p-4 rounded-r-lg">
-                  <h4 className="text-xs font-bold text-[#51E6C4] font-heading tracking-wider uppercase mb-1">
-                    Capítulo III: Bóveda de Obras (Proyectos Espaciales)
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    Selección de proyectos emblemáticos que fusionan interactividad en 3D, interfaces cinematográficas y arquitecturas de alto rendimiento.
-                  </p>
-                </div>
-
-                {/* Project 1 */}
-                <div className="bg-[#141f45]/80 border border-slate-700/80 rounded-xl p-4 space-y-2.5 hover:border-[#51E6C4]/60 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-bold text-white">01. Omni-Canvas Holodeck</h5>
-                    <span className="text-[10px] font-mono-telemetry text-[#51E6C4] bg-[#51E6C4]/15 px-2 py-0.5 rounded">
-                      THREE.JS · PBR
-                    </span>
+              isDesktopOrTabletLandscape ? (
+                <div className="flex-1 min-h-0 flex flex-col gap-3 [@media(max-height:680px)]:gap-2 animate-in fade-in duration-200 select-text">
+                  <div className="shrink-0 space-y-2 [@media(max-height:680px)]:space-y-1.5 [@media(max-height:500px)]:space-y-1">
+                    <h4 className="text-base sm:text-lg [@media(max-height:680px)]:text-base [@media(max-height:500px)]:text-sm font-bold text-white font-heading tracking-tight [text-wrap:balance]">
+                      ¡Bienvenidos!
+                    </h4>
+                    <p className="text-sm [@media(max-height:680px)]:text-[13px] [@media(max-height:500px)]:text-xs text-slate-200 leading-relaxed [@media(max-height:680px)]:leading-snug">
+                      (PLACEHOLDER) Soy Elvin G. Andrades. Mi orden de Little Caesar's es la siguiente: una pizza Stuffed Crust grande con pepperoni y setas, doble de todo. Se acompaña con otra orden de Crazy Cups de pepperoni y un litro de Sprite. Si te apetéce, ¡ordenala y pruebala!
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-300">
-                    Entorno 3D con iluminación de estudio RoomEnvironment oficial, navegación orbital fluida y renderizado de materiales dieléctricos y metálicos sin caídas de frame.
-                  </p>
-                  <div className="flex gap-2 text-[11px] font-mono-telemetry text-slate-400">
-                    <span>• 60 FPS Estable</span>
-                    <span>• Carga Blob CORS-Free</span>
-                  </div>
-                </div>
 
-                {/* Project 2 */}
-                <div className="bg-[#141f45]/80 border border-slate-700/80 rounded-xl p-4 space-y-2.5 hover:border-[#5E53CC]/60 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-bold text-white">02. Aetheria Kinetic Runner</h5>
-                    <span className="text-[10px] font-mono-telemetry text-[#b8b1ff] bg-[#5E53CC]/20 px-2 py-0.5 rounded">
-                      GAME ENGINE · AUDIO
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300">
-                    Juego de plataformas cinemático con motor de rotación angular de cubos, orbes elásticos gravitatorios y síntesis de audio retro en tiempo real.
-                  </p>
-                  <div className="flex gap-2 text-[11px] font-mono-telemetry text-slate-400">
-                    <span>• Web Audio Osciladores</span>
-                    <span>• Cero Dependencias</span>
-                  </div>
-                </div>
-
-                {/* Project 3 */}
-                <div className="bg-[#141f45]/80 border border-slate-700/80 rounded-xl p-4 space-y-2.5 hover:border-[#51E6C4]/60 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-bold text-white">03. Celestial Scrollytelling Engine</h5>
-                    <span className="text-[10px] font-mono-telemetry text-[#51E6C4] bg-[#51E6C4]/15 px-2 py-0.5 rounded">
-                      SCROLLYTELLING
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300">
-                    Sistema de capítulos narrativos en parallax con modulación de opacidad mediante transforms del compositor, asegurando lectura fluida en móviles y escritorio.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* CHAPTER 4: MATRIX (TECH STACK & ARCHITECTURE) */}
-            {selectedPlanet.domain === 'MATRIX' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-[#6366F1]/15 border-l-4 border-[#6366F1] p-4 rounded-r-lg">
-                  <h4 className="text-xs font-bold text-[#b8b1ff] font-heading tracking-wider uppercase mb-1">
-                    Capítulo IV: El Grimorio Técnico & Competencias
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    Dominio exhaustivo de tecnologías de vanguardia web, gráficos espaciales y cloud computing.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { label: 'Three.js / WebGL / Shaders GLSL', pct: '98%', barClass: 'w-[98%] bg-[#51E6C4]' },
-                    { label: 'TypeScript / React / Arquitectura Frontend', pct: '95%', barClass: 'w-[95%] bg-[#5E53CC]' },
-                    { label: 'Web Audio API / Síntesis Sonora Procedural', pct: '92%', barClass: 'w-[92%] bg-[#51E6C4]' },
-                    { label: 'Optimización GPU & 60 FPS Profiling', pct: '96%', barClass: 'w-[96%] bg-[#6366F1]' },
-                    { label: 'Firebase / Firestore / Cloud Datastores', pct: '90%', barClass: 'w-[90%] bg-[#51E6C4]' },
-                  ].map((skill, sIdx) => (
-                    <div key={sIdx} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-200 font-medium">{skill.label}</span>
-                        <span className="font-mono-telemetry text-[#51E6C4]">{skill.pct}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-[#0A1128] rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${skill.barClass}`} />
+                  {!introGifError && (
+                    <div className="relative flex-1 min-h-0 w-full select-none">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <img
+                          src="/assets/intro/bienvenidos.gif"
+                          alt="Animación de bienvenida de Elvin G. Andrades"
+                          width={240}
+                          height={476}
+                          referrerPolicy="no-referrer"
+                          onError={() => setIntroGifError(true)}
+                          className={`${SHARED_LANDSCAPE_MII_GIF_CLASS} max-h-full`}
+                        />
                       </div>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200 select-text">
+                  <div className="space-y-2.5">
+                    <h4 className="text-base sm:text-lg font-bold text-white font-heading tracking-tight [text-wrap:balance]">
+                      ¡Bienvenidos!
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                      (PLACEHOLDER) Soy Elvin G. Andrades. Mi misión es resolver la falta de imaginación y la rigidez visual en los entornos creativos actuales. Usando los pilares de SGX.Showcase y SGX.System, estoy creando un portafolio con un diseño innovador: una vista espacial inmersiva desde una nave donde cada planeta explora una faceta diferente del portfolio, completo con una atmósfera de serenidad y curiosidad, invitando a explorar todo lo que el portafolio tiene para ofrecer.
+                    </p>
+                  </div>
+
+                  {!introGifError && (
+                    <div className="pt-1 flex justify-center select-none">
+                      <img
+                        src="/assets/intro/bienvenidos.gif"
+                        alt="Animación de bienvenida de Elvin G. Andrades"
+                        width={240}
+                        height={476}
+                        referrerPolicy="no-referrer"
+                        onError={() => setIntroGifError(true)}
+                        className="block mx-auto w-auto h-auto max-h-[476px] max-w-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+
+            {/* JUEGOS (formerly NEXUS) */}
+            {selectedPlanet.domain === 'NEXUS' && (
+              <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200 select-text">
+                <h4 className="text-base sm:text-lg font-bold text-white font-heading tracking-tight [text-wrap:balance]">
+                  Mazescape
+                </h4>
+
+                {!gamesCoverError && (
+                  <div className="flex justify-center select-none">
+                    <img
+                      src="/assets/aistudio/mazescape_icon_24c5a4bd.png"
+                      alt="Portada de Mazescape"
+                      width={252}
+                      height={200}
+                      referrerPolicy="no-referrer"
+                      onError={() => setGamesCoverError(true)}
+                      className="block mx-auto w-[252px] max-w-[80%] h-auto rounded-xl border border-slate-700/80 shadow-md object-contain"
+                    />
+                  </div>
+                )}
+
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                  Te encuentras atrapado en un laberinto con monstruos. Tienes que pelear para escapar, ¿pero podras hacerlo a tiempo?
+                </p>
+
+                <div className="pt-1">
+                  <a
+                    href="https://ale-studio.itch.io/mazescape"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => soundEngine.playClickSound()}
+                    className="inline-flex items-center justify-center max-w-full px-4 py-2.5 rounded-lg bg-[#51E6C4] text-[#0A1128] text-xs sm:text-sm font-bold text-center hover:bg-[#6ef0d2] active:scale-[0.98] transition-all shadow-sm select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e1736]"
+                  >
+                    Juega Mazescape Ahora
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* BIOGRAFÍA (formerly MATRIX) */}
+            {selectedPlanet.domain === 'MATRIX' && (
+              <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200 select-text">
+                {!bioGifError && (
+                  <div className="flex justify-center select-none">
+                    <img
+                      src="/assets/biografia/heading.gif"
+                      alt="Animación de Elvin G. Andrades"
+                      width={240}
+                      height={480}
+                      referrerPolicy="no-referrer"
+                      onError={() => setBioGifError(true)}
+                      className={
+                        isDesktopOrTabletLandscape
+                          ? SHARED_LANDSCAPE_MII_GIF_CLASS
+                          : 'block mx-auto w-auto h-auto max-h-[476px] max-w-full object-contain'
+                      }
+                    />
+                  </div>
+                )}
+
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                  Elvin G. Andrades es un diseñador con talento excepcional en las artes digitales y una pasión tremenda para completar. Él especializa en el diseño de personajes, texturas y UV para modelos 3D, y diseños gráficos tales como logos e interfaces de usuario (UI). Recientemente, el artista fue ingresado en la compañía de Spatialgineers en el rango de Initiate después de haber completado los SGX Trials, su programa interno con el propósito de entrenar reclutas nuevos.
+                </p>
+
+                {!bioPhotoError && (
+                  <div className="pt-1 flex justify-center select-none">
+                    <img
+                      src="/assets/aistudio/biografia_foto_8228eabb.jpg"
+                      alt="Fotografía de Elvin G. Andrades"
+                      width={379}
+                      height={379}
+                      referrerPolicy="no-referrer"
+                      onError={() => setBioPhotoError(true)}
+                      className="block mx-auto w-auto h-auto max-w-full rounded-xl border border-slate-700/80 shadow-md object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* GALERÍA (formerly BEACON) */}
+            {selectedPlanet.domain === 'BEACON' && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                <div className="bg-[#141f45]/60 border border-slate-800 rounded-xl p-4 space-y-1.5">
+                  <h4 className="text-sm font-semibold text-white font-heading">
+                    Exhibición de Arte
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Archivo visual de arte conceptual y diseño de interfaz. Selecciona cualquier obra para verla ampliada en pantalla.
+                  </p>
+                </div>
+
+                {/* Interactive Category Filter Controls */}
+                <div className="flex flex-wrap items-center gap-1 p-1 bg-[#0A1128]/90 border border-slate-800/90 rounded-lg">
+                  {[
+                    { id: GalleryCategoryId.ALL, label: 'Todo' },
+                    ...GALLERY_CATEGORIES.map((category) => ({
+                      id: category.id,
+                      label: category.label
+                    }))
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveGalleryFilter(tab.id);
+                        soundEngine.playClickSound();
+                      }}
+                      className={`flex-auto py-1.5 px-2.5 text-[11px] sm:text-xs font-medium rounded-md transition-colors text-center whitespace-nowrap ${
+                        activeGalleryFilter === tab.id
+                          ? 'bg-[#141f45] text-[#51E6C4] shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
                   ))}
                 </div>
 
-                <div className="p-4 bg-[#141f45]/70 border border-slate-700 rounded-xl">
-                  <h5 className="text-xs font-bold text-white font-heading mb-2">
-                    Leyes de Conformidad SGX
-                  </h5>
-                  <p className="text-xs text-slate-400">
-                    ✓ Bypass CORS 100% garantizado con Blob URLs locales.<br/>
-                    ✓ Cero dependencias npm en distribución Vanilla Single-File.<br/>
-                    ✓ Respeto absoluto del viewport central sin oclusiones molestas.
-                  </p>
-                </div>
-              </div>
-            )}
+                {/* Categorized Exhibition Sections */}
+                <div className="space-y-6">
+                  {visibleGalleryCategories.map((category) => {
+                    const categoryItems = GALLERY_ARTWORKS.filter(
+                      (item) => item.category === category.id
+                    );
 
-            {/* CHAPTER 5: BEACON (TRANSMISSION & CONTACT) */}
-            {selectedPlanet.domain === 'BEACON' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                <div className="bg-[#51E6C4]/10 border-l-4 border-[#51E6C4] p-4 rounded-r-lg">
-                  <h4 className="text-xs font-bold text-[#51E6C4] font-heading tracking-wider uppercase mb-1">
-                    Capítulo V: Canal de Transmisión Directa
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    ¿Tienes una visión para un proyecto de ciencia ficción, una experiencia web 3D o una misión tecnológica? Establece contacto inmediato.
-                  </p>
-                </div>
+                    return (
+                      <section key={category.id} className="space-y-3">
+                        <div className="space-y-0.5 border-b border-slate-800/80 pb-2">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <h5 className="text-xs sm:text-sm font-semibold text-white font-heading">
+                              {category.label}
+                            </h5>
+                            <span className="text-[11px] text-slate-400 font-mono-telemetry">
+                              {categoryItems.length} {categoryItems.length === 1 ? 'archivo' : 'archivos'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            {category.description}
+                          </p>
+                        </div>
 
-                {transmissionSent ? (
-                  <div className="p-6 bg-[#51E6C4]/15 border border-[#51E6C4] rounded-xl text-center space-y-2 animate-in zoom-in-95">
-                    <CheckCircle2 className="w-8 h-8 text-[#51E6C4] mx-auto" />
-                    <h5 className="text-sm font-bold text-white font-heading">
-                      TRANSMISIÓN ENCRIPTADA
-                    </h5>
-                    <p className="text-xs text-slate-300">
-                      Tu mensaje ha sido enrutado a través de la baliza cósmica hacia el creador.
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSendTransmission} className="space-y-3.5">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Tu Señal de Origen (Correo o Identificador):
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={senderEmail}
-                        onChange={(e) => setSenderEmail(e.target.value)}
-                        placeholder="viajero@cosmos.org"
-                        className="w-full px-3 py-2 text-xs rounded-lg bg-[#0A1128] border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-[#51E6C4]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Mensaje o Propuesta de Misión:
-                      </label>
-                      <textarea
-                        required
-                        rows={4}
-                        value={messageText}
-                        onChange={(e) => setMessageText(e.target.value)}
-                        placeholder="Saludos desde el observatorio. Me gustaría colaborar en..."
-                        className="w-full px-3 py-2 text-xs rounded-lg bg-[#0A1128] border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-[#51E6C4] resize-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-2.5 px-4 rounded-lg bg-[#51E6C4] text-[#0A1128] font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#51E6C4]/90 transition-all shadow-lg"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>Transmitir Señal Interestelar</span>
-                    </button>
-                  </form>
-                )}
-
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <span>Canal PGP Activo</span>
-                  <div className="flex gap-3">
-                    <a
-                      href="https://github.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-[#51E6C4] transition-colors"
-                    >
-                      GitHub
-                    </a>
-                    <a
-                      href="mailto:creator@spatialgineers.com"
-                      className="hover:text-[#51E6C4] transition-colors"
-                    >
-                      Email
-                    </a>
-                  </div>
+                        {categoryItems.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-3">
+                            {categoryItems.map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleOpenArtwork(item)}
+                                className="group w-full text-left bg-[#0A1128]/85 border border-slate-800/90 hover:border-[#51E6C4]/60 rounded-xl overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#51E6C4]"
+                              >
+                                <div className="relative w-full aspect-video bg-[#070c1d] flex items-center justify-center overflow-hidden p-2">
+                                  <img
+                                    src={item.src}
+                                    alt={item.title}
+                                    loading="lazy"
+                                    className={`max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.03] ${
+                                      item.pixelArt ? '[image-rendering:pixelated]' : ''
+                                    }`}
+                                  />
+                                  <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-[#0A1128]/85 text-slate-300 group-hover:text-[#51E6C4] opacity-85 group-hover:opacity-100 transition-opacity">
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                  </div>
+                                </div>
+                                <div className="px-3 py-2.5 space-y-0.5 border-t border-slate-800/70">
+                                  <div className="text-xs font-semibold text-slate-100 group-hover:text-[#51E6C4] transition-colors truncate">
+                                    {item.title}
+                                  </div>
+                                  {item.caption && (
+                                    <p className="text-[11px] text-slate-400 line-clamp-2">
+                                      {item.caption}
+                                    </p>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-slate-800 bg-[#0A1128]/50 px-4 py-5 text-center space-y-1">
+                            <p className="text-xs font-medium text-slate-300">
+                              Sin archivos cargados en {category.label}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              Comparte las imágenes o enlaces directos de «{category.notebookSectionTitle}» para mostrarlas aquí.
+                            </p>
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Viewport-Fitted Artwork Lightbox Overlay with Clear Margins */}
+      {activeArtwork &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeArtwork.title}
+            onClick={handleCloseArtwork}
+            className="fixed inset-0 z-[100] w-screen h-[100dvh] overflow-hidden bg-[#050914]/92 backdrop-blur-sm select-none flex flex-col p-4 sm:p-6 lg:p-8 gap-3 sm:gap-4"
+          >
+            {/* Header Controls */}
+            <div className="shrink-0 w-full flex items-center justify-between gap-3 z-[110]">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="min-w-0 bg-[#0e1736]/95 border border-slate-800 rounded-xl px-3.5 py-2 shadow-xl"
+              >
+                <div className="text-xs sm:text-sm font-semibold text-white truncate">
+                  {activeArtwork.title}
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {GALLERY_CATEGORIES.find((c) => c.id === activeArtwork.category)?.label ??
+                    (activeArtwork.category === GalleryCategoryId.CONCEPT_ART
+                      ? 'Arte de Mazescape'
+                      : 'Otros Proyectos')}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseArtwork();
+                }}
+                aria-label="Cerrar imagen"
+                className="shrink-0 min-h-[40px] flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0e1736]/95 border border-slate-700/90 hover:border-[#51E6C4] text-slate-200 hover:text-white text-xs font-medium shadow-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#51E6C4]"
+              >
+                <X className="w-4 h-4" />
+                <span>Cerrar</span>
+              </button>
+            </div>
+
+            {/* Viewport-Contained Artwork Stage with Surrounding Margin */}
+            <div className="relative flex-1 min-h-0 min-w-0 w-full">
+              <div className="absolute inset-0 p-2 sm:p-4 lg:px-10 lg:py-4 flex items-center justify-center">
+                <img
+                  src={activeArtwork.src}
+                  alt={activeArtwork.title}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`block max-w-full max-h-full w-auto h-auto object-contain shadow-2xl rounded-lg border border-slate-800/80 bg-[#070c1d] ${
+                    activeArtwork.pixelArt ? '[image-rendering:pixelated]' : ''
+                  }`}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

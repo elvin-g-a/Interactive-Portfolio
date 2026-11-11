@@ -66,3 +66,82 @@ export const DEFAULT_CONFIG: SGXConfig = {
   stageMode: false,
   performanceMode: 'HIGH'
 };
+
+/**
+ * Shared media query for vertical viewport format.
+ * Mobile and tablet screens use the vertical layout in portrait orientation
+ * and switch to the desktop (computadora) format when in landscape orientation.
+ */
+export const VERTICAL_VIEWPORT_MEDIA_QUERY = '(orientation: portrait)';
+
+export function isMobileOrTabletViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia(VERTICAL_VIEWPORT_MEDIA_QUERY).matches;
+}
+
+/**
+ * Media query targeting mobile-only portrait viewports (< 640px in portrait orientation)
+ * while leaving landscape mobile, tablet, and desktop layouts on their respective formats.
+ */
+export const MOBILE_ONLY_MEDIA_QUERY = '(max-width: 639px) and (orientation: portrait)';
+
+/**
+ * Horizontal leftward shift (in 1920x1920 vertical-overlay source pixels) applied ONLY on
+ * mobile portrait when a planet panel is open (120 / 1920 = 6.25vh), keeping the inner left CRT
+ * bezel visible near the left screen edge while freeing space on the right for a wider panel.
+ */
+export const MOBILE_SELECTED_OVERLAY_SHIFT_PNG = 120;
+
+export function isMobileOnlyViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return isMobileOrTabletViewport() && window.matchMedia(MOBILE_ONLY_MEDIA_QUERY).matches;
+}
+
+/**
+ * Media query targeting tablet viewports in landscape orientation
+ * (excludes mobile landscape <= 500px tall and standard desktop monitors > 1368px with fine pointer).
+ */
+export const TABLET_LANDSCAPE_MEDIA_QUERY =
+  '(orientation: landscape) and (min-width: 640px) and (max-width: 1368px) and (min-height: 501px), (orientation: landscape) and (min-height: 501px) and (hover: none) and (pointer: coarse)';
+
+export function isTabletLandscapeViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return !isMobileOrTabletViewport() && window.matchMedia(TABLET_LANDSCAPE_MEDIA_QUERY).matches;
+}
+
+/**
+ * Media query targeting desktop (computadora) and tablet viewports in horizontal (landscape) orientation
+ * while excluding portrait layouts and compact mobile landscape viewports.
+ */
+export const DESKTOP_OR_TABLET_LANDSCAPE_MEDIA_QUERY =
+  '(orientation: landscape) and (min-width: 640px) and (min-height: 501px), (orientation: landscape) and (min-width: 640px) and (hover: hover) and (pointer: fine)';
+
+export function isDesktopOrTabletLandscapeViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return !isMobileOrTabletViewport() && window.matchMedia(DESKTOP_OR_TABLET_LANDSCAPE_MEDIA_QUERY).matches;
+}
+
+/**
+ * Media query targeting all mobile and tablet viewports across both portrait and landscape orientations
+ * (excludes desktop monitors > 1368px in landscape with fine pointer).
+ */
+export const MOBILE_OR_TABLET_DEVICE_MEDIA_QUERY =
+  '(orientation: portrait), (orientation: landscape) and (max-width: 1368px), (orientation: landscape) and (max-height: 500px), (hover: none) and (pointer: coarse)';
+
+export function isMobileOrTabletDeviceViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia(MOBILE_OR_TABLET_DEVICE_MEDIA_QUERY).matches;
+}
+
+
+

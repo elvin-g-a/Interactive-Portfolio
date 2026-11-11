@@ -1,0 +1,5 @@
+Heading: (GIF) https://drive.google.com/file/d/1KfKJxHBa53xF70UOx0f2brVPdmCCCzYG/
+
+Body: Elvin G. Andrades es un diseñador con talento excepcional en las artes digitales y una pasión tremenda para completar. Él especializa en el diseño de personajes, texturas y UV para modelos 3D, y diseños gráficos tales como logos e interfaces de usuario (UI). Recientemente, el artista fue ingresado en la compañía de Spatialgineers en el rango de Initiate después de haber completado los SGX Trials, su programa interno con el propósito de entrenar reclutas nuevos.
+
+(Añade la imagen "biografia_foto.jpg" debajo del texto)

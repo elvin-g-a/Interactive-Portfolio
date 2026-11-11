@@ -1,0 +1,5 @@
+Heading: Mazescape
+
+Body: Te encuentras atrapado en un laberinto con monstruos. Tienes que pelear para escapar, ¿pero podras hacerlo a tiempo?
+
+Botón: Juega Mazescape Ahora (Enlace: https://ale-studio.itch.io/mazescape)
