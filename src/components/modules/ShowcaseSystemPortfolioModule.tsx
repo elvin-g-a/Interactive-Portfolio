@@ -134,7 +134,7 @@ const CELESTIAL_PLANETS: CelestialPlanet[] = [
     description: 'Diseñador de personajes, texturas y UV para modelos 3D, logos e interfaces de usuario (UI); Initiate en Spatialgineers.',
     chapterNumber: 4,
     modelFile: '/models/neptune.glb',
-    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_3852ab5e10ff4120975dd5b5d3a0ef12.glb'
+    fallbackModelUrl: 'https://static.wixstatic.com/3d/06361e_b60eb5038a9044b99242a9ab67d77c11.glb'
   },
   {
     id: 'planet-spark',
@@ -1254,7 +1254,7 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                       ¡Bienvenidos!
                     </h4>
                     <p className="text-sm [@media(max-height:680px)]:text-[13px] [@media(max-height:500px)]:text-xs text-slate-200 leading-relaxed [@media(max-height:680px)]:leading-snug">
-                      (PLACEHOLDER) Soy Elvin G. Andrades. Mi orden de Little Caesar's es la siguiente: una pizza Stuffed Crust grande con pepperoni y setas, doble de todo. Se acompaña con otra orden de Crazy Cups de pepperoni y un litro de Sprite. Si te apetéce, ¡ordenala y pruebala!
+                      Soy Elvin G. Andrades. Resuelvo la falta de impacto visual en plataformas digitales a través de SGX.Showcase y SGX.System, creando conceptos y visuales optimizados en 2D y 3D que convierten una interfaz estática en una experiencia inmersiva inolvidable.
                     </p>
                   </div>
 
@@ -1281,7 +1281,7 @@ export const ShowcaseSystemPortfolioModule: React.FC<ShowcaseSystemPortfolioModu
                       ¡Bienvenidos!
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                      (PLACEHOLDER) Soy Elvin G. Andrades. Mi misión es resolver la falta de imaginación y la rigidez visual en los entornos creativos actuales. Usando los pilares de SGX.Showcase y SGX.System, estoy creando un portafolio con un diseño innovador: una vista espacial inmersiva desde una nave donde cada planeta explora una faceta diferente del portfolio, completo con una atmósfera de serenidad y curiosidad, invitando a explorar todo lo que el portafolio tiene para ofrecer.
+                      Soy Elvin G. Andrades. Resuelvo la falta de impacto visual en plataformas digitales a través de SGX.Showcase y SGX.System, creando conceptos y visuales optimizados en 2D y 3D que convierten una interfaz estática en una experiencia inmersiva inolvidable.
                     </p>
                   </div>
 

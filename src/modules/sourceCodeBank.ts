@@ -171,7 +171,7 @@ export class ShowcaseSystemPortfolioEngine {
 
   initOverlay() {
     const overlay = document.createElement('img');
-    overlay.src = '/assets/aistudio/viewport_fbe8d8eb.png';
+    overlay.src = '/assets/aistudio/viewport-horizontal_02abe2e0.webp';
     overlay.alt = '';
     overlay.style.cssText = 'position:fixed;top:0;left:0;height:100vh;width:auto;max-width:none;image-rendering:pixelated;pointer-events:none;z-index:30;';
     document.body.appendChild(overlay);
@@ -183,7 +183,7 @@ export class ShowcaseSystemPortfolioEngine {
       { id: 'spark', name: 'Planeta Spark', color: 0xE06D53, r: 0.68, sx: 0.7294, sy: 0.6810, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_eccac59d52044676884a981e435e7c7d.glb', chapter: 'Mecánicas Interactivas & Spark Engine' },
       { id: 'story', name: 'Planeta Story', color: 0xD8C39D, r: 0.72, sx: 0.4948, sy: 0.4741, hasRings: true, url: 'https://static.wixstatic.com/3d/06361e_968472237ff14ce49099d980a5fb9467.glb', chapter: 'Crónicas del Viajero & Manifiesto' },
       { id: 'nexus', name: 'Planeta Nexus', color: 0x4A90E2, r: 0.66, sx: 0.7258, sy: 0.3199, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_04dd2853553440ca9c08d03ef60aa335.glb', chapter: 'Bóveda de Obras y Proyectos' },
-      { id: 'matrix', name: 'Planeta Matrix', color: 0x41729F, r: 0.65, sx: 0.2529, sy: 0.6810, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_3852ab5e10ff4120975dd5b5d3a0ef12.glb', chapter: 'El Bastión Tecnológico' },
+      { id: 'matrix', name: 'Planeta Matrix', color: 0x41729F, r: 0.65, sx: 0.2529, sy: 0.6810, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_b60eb5038a9044b99242a9ab67d77c11.glb', chapter: 'El Bastión Tecnológico' },
       { id: 'beacon', name: 'Planeta Beacon', color: 0xA0A0A0, r: 0.63, sx: 0.2529, sy: 0.3157, hasRings: false, url: 'https://static.wixstatic.com/3d/06361e_edab7517a8a94eb0a249f502dd4b21f2.glb', chapter: 'El Faro de Contacto' }
     ];
 

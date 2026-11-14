@@ -189,7 +189,7 @@ export default function App() {
           <div className="absolute top-0 left-[calc(50vw_-_188.888889vh)] flex flex-row items-start justify-start h-screen">
             <div className="w-[100vh] h-screen shrink-0 bg-[linear-gradient(to_bottom,#13184e_0%,#13184e_5.28%,#3b3c7f_5.28%,#3b3c7f_13.06%,#5f6593_13.06%,#5f6593_84.72%,#3b3c7f_84.72%,#3b3c7f_92.22%,#5c6285_92.22%,#5c6285_92.50%,#1d2752_92.50%,#1d2752_96.94%,#0d1049_96.94%,#0d1049_97.78%,#02030f_97.78%,#02030f_98.33%,#0d1049_98.33%,#0d1049_100%)]" />
             <img
-              src="/assets/aistudio/viewport_fbe8d8eb.png"
+              src="/assets/aistudio/viewport-horizontal_02abe2e0.webp"
               alt=""
               draggable={false}
               className="h-screen w-auto max-w-none shrink-0 [image-rendering:pixelated] pointer-events-none select-none"
@@ -205,8 +205,8 @@ export default function App() {
             <img
               src={
                 isVerticalOverlay
-                  ? '/assets/aistudio/viewport-vertical_94332b37.png'
-                  : '/assets/aistudio/viewport_fbe8d8eb.png'
+                  ? '/assets/aistudio/viewport-vertical_e581dad3.webp'
+                  : '/assets/aistudio/viewport-horizontal_02abe2e0.webp'
               }
               alt=""
               draggable={false}
