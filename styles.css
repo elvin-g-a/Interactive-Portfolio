@@ -1,0 +1,1316 @@
+/* ============================================================================
+   SGX PORTAFOLIO ESPACIAL — HOJA DE ESTILOS PURA Y EDITABLE A MANO
+   Colores, tipografías, overlays responsivos, panel planetario y lightbox.
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   1. Tipografías personalizadas locales
+   ---------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'SGXHeading';
+  src: url('./fonts/heading.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SGXBody';
+  src: url('./fonts/body.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ----------------------------------------------------------------------------
+   2. Variables editables de tema y diseño (:root)
+   ---------------------------------------------------------------------------- */
+:root {
+  --bg-deep: #0A1128;
+  --surface-drawer: rgba(14, 23, 54, 0.95);
+  --surface-header: rgba(10, 17, 40, 0.90);
+  --surface-tabs: rgba(20, 31, 69, 0.50);
+  --surface-card: rgba(20, 31, 69, 0.60);
+  --surface-card-dark: rgba(10, 17, 40, 0.86);
+  --surface-artwork: #070c1d;
+  --surface-lightbox: rgba(5, 9, 20, 0.94);
+
+  --accent: #51E6C4;
+  --accent-hover: #6ef0d2;
+  --accent-secondary: #5E53CC;
+
+  --border-accent: rgba(81, 230, 196, 0.45);
+  --border-subtle: rgba(30, 41, 59, 0.90);
+  --border-media: rgba(51, 65, 85, 0.80);
+
+  --text-primary: #ffffff;
+  --text-body: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --font-heading: 'SGXHeading', sans-serif;
+  --font-body: 'SGXBody', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radius-drawer: 1rem;
+  --radius-card: 0.75rem;
+  --radius-btn: 0.5rem;
+
+  --z-canvas: 10;
+  --z-overlay: 30;
+  --z-drawer: 50;
+  --z-lightbox: 100;
+}
+
+/* ----------------------------------------------------------------------------
+   3. Base y accesibilidad
+   ---------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-body);
+  font-family: var(--font-body);
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--accent);
+  color: var(--bg-deep);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+a {
+  font-family: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Barras de desplazamiento discretas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080d14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #32527B;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4A7AB7;
+}
+
+/* ----------------------------------------------------------------------------
+   4. Escenario principal y Canvas 3D WebGL (z-10)
+   ---------------------------------------------------------------------------- */
+.app-stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  background-color: var(--bg-deep);
+  overflow: hidden;
+  user-select: none;
+}
+
+.space-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: var(--z-canvas);
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.space-canvas.is-hovering {
+  cursor: pointer;
+}
+
+.space-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ----------------------------------------------------------------------------
+   5. Overlay Pixel-Art Animado WebP y Paredes Extendidas (z-30)
+   ---------------------------------------------------------------------------- */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Modo estándar (Escritorio, Móvil horizontal, Tableta vertical y Móvil vertical) */
+.crt-track {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: calc(100vw + 8vh);
+  height: 100vh;
+  transform: translateX(0);
+  transition: transform 500ms ease-out;
+  will-change: transform;
+}
+
+/* Desplazamiento izquierdo en móvil vertical al seleccionar un planeta (120 / 1920 = 6.25vh) */
+.crt-track.is-shifted {
+  transform: translateX(-6.25vh);
+}
+
+/* Modo tableta horizontal: composición principal 1920x1080 centrada en 50vw */
+.crt-track-centered {
+  position: absolute;
+  top: 0;
+  left: calc(50vw - 188.888889vh);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  height: 100vh;
+}
+
+.crt-overlay-img {
+  display: block;
+  height: 100vh;
+  width: auto;
+  max-width: none;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+  user-select: none;
+}
+
+.crt-wall-right {
+  flex: 1;
+  height: 100vh;
+}
+
+.crt-wall-right--horizontal {
+  background: linear-gradient(
+    to bottom,
+    #3b3c7f 0%,
+    #3b3c7f 13.06%,
+    #5f6593 13.06%,
+    #5f6593 84.72%,
+    #3b3c7f 84.72%,
+    #3b3c7f 92.22%,
+    #5c6285 92.22%,
+    #5c6285 100%
+  );
+}
+
+.crt-wall-right--vertical {
+  background: linear-gradient(
+    to bottom,
+    #282675 0%,
+    #282675 9.38%,
+    #5d6492 9.38%,
+    #5d6492 90.63%,
+    #282675 90.63%,
+    #282675 95.47%,
+    #5a6183 95.47%,
+    #5a6183 99.84%,
+    #282675 99.84%,
+    #282675 100%
+  );
+}
+
+.crt-wall-left-tablet {
+  width: 100vh;
+  height: 100vh;
+  flex-shrink: 0;
+  background: linear-gradient(
+    to bottom,
+    #13184e 0%,
+    #13184e 5.28%,
+    #3b3c7f 5.28%,
+    #3b3c7f 13.06%,
+    #5f6593 13.06%,
+    #5f6593 84.72%,
+    #3b3c7f 84.72%,
+    #3b3c7f 92.22%,
+    #5c6285 92.22%,
+    #5c6285 92.50%,
+    #1d2752 92.50%,
+    #1d2752 96.94%,
+    #0d1049 96.94%,
+    #0d1049 97.78%,
+    #02030f 97.78%,
+    #02030f 98.33%,
+    #0d1049 98.33%,
+    #0d1049 100%
+  );
+}
+
+.crt-wall-right-tablet {
+  width: 100vw;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------------------------
+   6. Panel lateral del planeta seleccionado (z-50)
+   ---------------------------------------------------------------------------- */
+.planet-drawer {
+  position: fixed;
+  z-index: var(--z-drawer);
+  top: 1.5rem;
+  bottom: 1.5rem;
+  right: 1rem;
+  width: 390px;
+  max-width: 44vw;
+  background-color: var(--surface-drawer);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-drawer);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+@media (min-width: 640px) {
+  .planet-drawer {
+    right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .planet-drawer {
+    right: 2rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .planet-drawer {
+    top: 0.625rem;
+    bottom: 0.625rem;
+  }
+}
+
+/* Variante compacta y centrada verticalmente para Contactos */
+.planet-drawer.planet-drawer--contactos {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  height: auto;
+  max-height: calc(100dvh - 3rem);
+}
+
+@media (max-height: 500px) {
+  .planet-drawer.planet-drawer--contactos {
+    max-height: calc(100dvh - 1.25rem);
+  }
+}
+
+/* Variante móvil vertical: aprovecha el desplazamiento -6.25vh del overlay */
+.planet-drawer.planet-drawer--mobile-portrait {
+  top: 0.75rem;
+  bottom: 0.75rem;
+  right: 0.625rem;
+  width: 61vw;
+  max-width: calc(100vw - 6.5rem);
+}
+
+.planet-drawer.planet-drawer--mobile-portrait.planet-drawer--contactos {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  height: auto;
+  max-height: calc(100dvh - 1.5rem);
+}
+
+/* Encabezado del panel */
+.drawer-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.95);
+  background-color: var(--surface-header);
+}
+
+@media (min-width: 640px) {
+  .drawer-header {
+    padding: 1rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .drawer-header {
+    padding: 0.625rem;
+  }
+}
+
+.drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .drawer-title-group {
+    gap: 0.75rem;
+  }
+}
+
+.drawer-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.drawer-headings {
+  min-width: 0;
+}
+
+.drawer-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .drawer-title {
+    font-size: 1rem;
+  }
+}
+
+.drawer-subtitle {
+  font-size: 0.6875rem;
+  color: var(--accent);
+  margin-top: 0.125rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .drawer-subtitle {
+    font-size: 0.75rem;
+  }
+}
+
+.icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0.25rem;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.icon-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------------
+   7. Pestañas de navegación de capítulos (Escritorio vs Móvil/Tableta)
+   ---------------------------------------------------------------------------- */
+.planet-tabs {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  background-color: var(--surface-tabs);
+  overflow-x: auto;
+}
+
+/* Escritorio: todas las pestañas en una fila sin barra de desplazamiento */
+.planet-tabs.planet-tabs--desktop {
+  justify-content: space-between;
+  gap: 0.125rem;
+  padding: 0 0.625rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.planet-tabs.planet-tabs--desktop::-webkit-scrollbar {
+  display: none;
+}
+
+/* Móvil y tableta: scroll horizontal fluido con toque y barra visible */
+.planet-tabs.planet-tabs--scrollable {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.planet-tab-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.planet-tabs--scrollable .planet-tab-btn {
+  padding: 0.625rem 0.75rem;
+}
+
+@media (max-height: 500px) {
+  .planet-tabs--scrollable .planet-tab-btn {
+    padding: 0.375rem 0.75rem;
+  }
+}
+
+.planet-tab-btn:hover {
+  color: var(--text-body);
+}
+
+.planet-tab-btn.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.planet-tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ----------------------------------------------------------------------------
+   8. Cuerpo de contenido de los 5 capítulos
+   ---------------------------------------------------------------------------- */
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.875rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.625;
+}
+
+@media (min-width: 640px) {
+  .drawer-body {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .drawer-body {
+    padding: 0.875rem;
+  }
+}
+
+/* Variante Contactos */
+.drawer-body.drawer-body--contactos {
+  flex: 0 1 auto;
+  padding: 1rem;
+  color: var(--text-body);
+}
+
+@media (min-width: 640px) {
+  .drawer-body.drawer-body--contactos {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .drawer-body.drawer-body--contactos {
+    padding: 0.875rem;
+  }
+}
+
+/* Variante Introducción sin scroll en escritorio y tableta horizontal */
+.drawer-body.drawer-body--intro-landscape {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem 1.25rem;
+}
+
+@media (max-height: 680px) {
+  .drawer-body.drawer-body--intro-landscape {
+    padding: 1rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .drawer-body.drawer-body--intro-landscape {
+    padding: 0.875rem;
+  }
+}
+
+@media (max-height: 380px) {
+  .drawer-body.drawer-body--intro-landscape {
+    overflow-y: auto;
+  }
+}
+
+/* Animación sutil de entrada por capítulo */
+@keyframes panelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chapter-content {
+  animation: panelFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: text;
+}
+
+.chapter-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .chapter-stack {
+    gap: 1.25rem;
+  }
+}
+
+.chapter-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+@media (min-width: 640px) {
+  .chapter-heading {
+    font-size: 1.125rem;
+  }
+}
+
+.chapter-copy {
+  font-size: 0.75rem;
+  color: var(--text-body);
+  line-height: 1.625;
+}
+
+@media (min-width: 640px) {
+  .chapter-copy {
+    font-size: 0.875rem;
+  }
+}
+
+/* Introducción (modo escritorio y tableta horizontal sin scroll) */
+.intro-landscape {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (max-height: 680px) {
+  .intro-landscape {
+    gap: 0.5rem;
+  }
+}
+
+.intro-landscape-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.intro-landscape-header .chapter-copy {
+  font-size: 0.875rem;
+}
+
+@media (max-height: 680px) {
+  .intro-landscape-header {
+    gap: 0.375rem;
+  }
+  .intro-landscape-header .chapter-heading {
+    font-size: 1rem;
+  }
+  .intro-landscape-header .chapter-copy {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+}
+
+@media (max-height: 500px) {
+  .intro-landscape-header {
+    gap: 0.25rem;
+  }
+  .intro-landscape-header .chapter-heading {
+    font-size: 0.875rem;
+  }
+  .intro-landscape-header .chapter-copy {
+    font-size: 0.75rem;
+  }
+}
+
+.intro-gif-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  user-select: none;
+}
+
+.intro-gif-stage-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-center {
+  display: flex;
+  justify-content: center;
+  user-select: none;
+}
+
+.media-center--padded {
+  padding-top: 0.25rem;
+}
+
+/* Escalado proporcional compartido entre GIF de Introducción y Biografía */
+.mii-gif--landscape {
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  height: clamp(96px, calc(100dvh - 515px), 320px);
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media (max-height: 680px) {
+  .mii-gif--landscape {
+    height: clamp(88px, calc(100dvh - 435px), 240px);
+  }
+}
+
+@media (max-height: 500px) {
+  .mii-gif--landscape {
+    height: clamp(72px, calc(100dvh - 335px), 170px);
+  }
+}
+
+.mii-gif--portrait {
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  height: auto;
+  max-height: 476px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Juegos: Portada de Mazescape (reducida un 20%: 252px / 80% máx.) */
+.games-cover-img {
+  display: block;
+  margin: 0 auto;
+  width: 252px;
+  max-width: 80%;
+  height: auto;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-media);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  object-fit: contain;
+}
+
+/* Biografía: Foto de perfil */
+.bio-photo-img {
+  display: block;
+  margin: 0 auto;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-media);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  object-fit: contain;
+}
+
+/* Contactos */
+.contact-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contact-list {
+  border-top: 1px solid rgba(30, 41, 59, 0.8);
+  padding-top: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+@media (max-height: 500px) {
+  .contact-list {
+    padding-top: 0.625rem;
+    gap: 0.625rem;
+  }
+}
+
+.contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contact-item--action {
+  gap: 0.375rem;
+}
+
+.contact-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (min-width: 640px) {
+  .contact-label {
+    font-size: 0.8125rem;
+  }
+}
+
+.contact-email {
+  font-size: 0.75rem;
+  color: var(--text-body);
+  word-break: break-all;
+}
+
+@media (min-width: 640px) {
+  .contact-email {
+    font-size: 0.875rem;
+  }
+}
+
+/* Botón primario de acento (Juegos y Contactos) */
+.primary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-btn);
+  background-color: var(--accent);
+  color: var(--bg-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  user-select: none;
+  transition: background-color 160ms ease, transform 120ms ease;
+}
+
+@media (min-width: 640px) {
+  .primary-cta {
+    font-size: 0.875rem;
+  }
+}
+
+.primary-cta--games {
+  padding: 0.625rem 1rem;
+}
+
+.primary-cta:hover {
+  background-color: var(--accent-hover);
+}
+
+.primary-cta:active {
+  transform: scale(0.98);
+}
+
+.primary-cta:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------------
+   9. Galería y tarjetas de exhibición
+   ---------------------------------------------------------------------------- */
+.gallery-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  user-select: none;
+}
+
+.gallery-intro-card {
+  background-color: var(--surface-card);
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  border-radius: var(--radius-card);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.gallery-intro-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gallery-intro-copy {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+/* Controles segmentados de filtro */
+.gallery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background-color: rgba(10, 17, 40, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-btn);
+}
+
+.gallery-filter-btn {
+  flex: 1 1 auto;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+@media (min-width: 640px) {
+  .gallery-filter-btn {
+    font-size: 0.75rem;
+  }
+}
+
+.gallery-filter-btn:hover {
+  color: var(--text-body);
+}
+
+.gallery-filter-btn.is-active {
+  background-color: #141f45;
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.gallery-filter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.gallery-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.gallery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gallery-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+.gallery-section-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gallery-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (min-width: 640px) {
+  .gallery-section-title {
+    font-size: 0.875rem;
+  }
+}
+
+.gallery-section-count {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gallery-section-desc {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.artwork-card {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  background-color: var(--surface-card-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 180ms ease;
+}
+
+.artwork-card:hover {
+  border-color: rgba(81, 230, 196, 0.6);
+}
+
+.artwork-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.artwork-thumb-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: var(--surface-artwork);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.5rem;
+}
+
+.artwork-thumb-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.artwork-card:hover .artwork-thumb-img {
+  transform: scale(1.03);
+}
+
+.artwork-expand-icon {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.375rem;
+  border-radius: var(--radius-btn);
+  background-color: rgba(10, 17, 40, 0.85);
+  color: var(--text-secondary);
+  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+.artwork-expand-icon svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.artwork-card:hover .artwork-expand-icon {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.artwork-card-footer {
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid rgba(30, 41, 59, 0.7);
+}
+
+.artwork-card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.artwork-card:hover .artwork-card-title {
+  color: var(--accent);
+}
+
+.media-fallback {
+  width: 100%;
+  padding: 1rem;
+  border-radius: var(--radius-card);
+  border: 1px dashed var(--border-subtle);
+  background: linear-gradient(135deg, rgba(14, 23, 54, 0.9), rgba(20, 31, 69, 0.7));
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------------------------
+   10. Visor Lightbox a pantalla completa con márgenes limpios (z-100)
+   ---------------------------------------------------------------------------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-lightbox);
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--surface-lightbox);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 0.75rem;
+  user-select: none;
+}
+
+@media (min-width: 640px) {
+  .lightbox {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lightbox {
+    padding: 2rem;
+  }
+}
+
+.lightbox-header {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.lightbox-meta {
+  min-width: 0;
+  background-color: var(--surface-drawer);
+  border: 1px solid rgba(30, 41, 59, 0.95);
+  border-radius: var(--radius-card);
+  padding: 0.5rem 0.875rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+.lightbox-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .lightbox-title {
+    font-size: 0.875rem;
+  }
+}
+
+.lightbox-category {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+}
+
+.lightbox-close-btn {
+  flex-shrink: 0;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-card);
+  background-color: var(--surface-drawer);
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  color: var(--text-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.lightbox-close-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.lightbox-close-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.lightbox-close-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lightbox-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.lightbox-stage-inner {
+  position: absolute;
+  inset: 0;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .lightbox-stage-inner {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lightbox-stage-inner {
+    padding: 1rem 2.5rem;
+  }
+}
+
+.lightbox-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  background-color: var(--surface-artwork);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* ----------------------------------------------------------------------------
+   11. Preferencia de movimiento reducido
+   ---------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .crt-track,
+  .chapter-content,
+  .artwork-thumb-img,
+  .primary-cta {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,21 +1,130 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SGX Omni-Canvas: Showcase x System | Portafolio Interactivo</title>
-    <meta name="description" content="Entorno sci-fi acogedor (#0A1128, #51E6C4, #5E53CC) con personaje geométrico en 3ra persona y sistema de planetas interactivos para explorar el portafolio a 60 FPS." />
+    <meta
+      name="description"
+      content="Portafolio espacial interactivo de Elvin G. Andrades (SGX.Showcase y SGX.System): ciencia ficción acogedora con cinco planetas 3D interactivos a 60 FPS."
+    />
     <meta property="og:title" content="SGX Omni-Canvas: Showcase x System | Portafolio Interactivo" />
-    <meta property="og:description" content="Entorno sci-fi acogedor (#0A1128, #51E6C4, #5E53CC) con personaje geométrico en 3ra persona y sistema de planetas interactivos para explorar el portafolio a 60 FPS." />
+    <meta
+      property="og:description"
+      content="Portafolio espacial interactivo de Elvin G. Andrades (SGX.Showcase y SGX.System): ciencia ficción acogedora con cinco planetas 3D interactivos a 60 FPS."
+    />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Aceleración de conexión para Three.js (CDN) y modelos 3D (Wix) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://static.wixstatic.com" crossorigin />
+
+    <!-- Estilos puros y editables a mano -->
+    <link rel="stylesheet" href="./styles.css" />
+
+    <!-- Import Map nativo: ejecuta Three.js directo en GitHub Pages sin compilación -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+        }
+      }
+    </script>
   </head>
-  <body class="bg-[#0A1128] text-slate-100 antialiased selection:bg-[#51E6C4] selection:text-[#0A1128] overflow-x-hidden">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+
+  <body>
+    <h1 class="sr-only">
+      Portafolio Espacial Interactivo de Elvin G. Andrades — SGX.Showcase y SGX.System
+    </h1>
+
+    <main class="app-stage" aria-label="Portafolio Espacial Interactivo">
+      <!-- Capa 1 (z-10): Escena WebGL 3D con los cinco planetas interactivos -->
+      <div
+        id="space-canvas"
+        class="space-canvas"
+        role="application"
+        aria-label="Escena espacial 3D con planetas interactivos"
+      ></div>
+
+      <!-- Capa 2 (z-30): Overlay pixel-art animado WebP y paredes extendidas -->
+      <div id="crt-overlay" class="crt-overlay" aria-hidden="true"></div>
+
+      <!-- Capa 3 (z-50): Panel informativo del planeta seleccionado -->
+      <aside
+        id="planet-drawer"
+        class="planet-drawer"
+        aria-label="Detalles del capítulo seleccionado"
+        hidden
+      >
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="drawer-dot" aria-hidden="true"></span>
+            <div class="drawer-headings">
+              <h2 id="drawer-title" class="drawer-title"></h2>
+              <p id="drawer-subtitle" class="drawer-subtitle"></p>
+            </div>
+          </div>
+
+          <button
+            id="drawer-close-btn"
+            type="button"
+            class="icon-btn"
+            aria-label="Cerrar panel del planeta"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </header>
+
+        <!-- Pestañas rápidas para alternar entre los 5 planetas -->
+        <nav id="planet-tabs" class="planet-tabs" aria-label="Capítulos del portafolio"></nav>
+
+        <!-- Contenido dinámico de cada planeta -->
+        <div id="drawer-body" class="drawer-body"></div>
+      </aside>
+    </main>
+
+    <!-- Capa 4 (z-100): Visor ampliado (Lightbox) para obras de la Galería -->
+    <div
+      id="artwork-lightbox"
+      class="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lightbox-title"
+      hidden
+    >
+      <div class="lightbox-header">
+        <div id="lightbox-meta" class="lightbox-meta">
+          <div id="lightbox-title" class="lightbox-title"></div>
+          <div id="lightbox-category" class="lightbox-category"></div>
+        </div>
+
+        <button
+          id="lightbox-close-btn"
+          type="button"
+          class="lightbox-close-btn"
+          aria-label="Cerrar imagen"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+          <span>Cerrar</span>
+        </button>
+      </div>
+
+      <div class="lightbox-stage">
+        <div class="lightbox-stage-inner">
+          <img id="lightbox-image" class="lightbox-image" src="" alt="" referrerpolicy="no-referrer" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Lógica modular nativa (Three.js + Web Audio + Interfaz) -->
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
-
